@@ -53,6 +53,14 @@ import { applyUiBranding } from "./ui-branding.js";
 import { logger } from "./middleware/logger.js";
 import { DEFAULT_LOCAL_PLUGIN_DIR, pluginLoader } from "./services/plugin-loader.js";
 import { createPluginWorkerManager, type PluginWorkerManager } from "./services/plugin-worker-manager.js";
+import {
+  createSwarmWatchdogBridge,
+  createMcpSwarmServer,
+  createSwarmTelemetryServer,
+  type SwarmWatchdogBridge,
+  type McpSwarmServer,
+  type SwarmTelemetryServer,
+} from "./mcp-swarm/index.js";
 import { createPluginJobScheduler } from "./services/plugin-job-scheduler.js";
 import { pluginJobStore } from "./services/plugin-job-store.js";
 import { createPluginToolDispatcher } from "./services/plugin-tool-dispatcher.js";
@@ -155,12 +163,18 @@ export async function createApp(
     pluginWorkerManager?: PluginWorkerManager;
     betterAuthHandler?: express.RequestHandler;
     resolveSession?: (req: ExpressRequest) => Promise<BetterAuthSessionResult | null>;
+    swarmEnabled?: boolean;
   },
 ) {
   const app = express();
   const captureRawBody = (req: express.Request, _res: express.Response, buf: Buffer) => {
     (req as unknown as { rawBody: Buffer }).rawBody = buf;
   };
+
+  // Feature flag: MCP Swarm — gated behind PAPERCLIP_SWARM env var or opts.swarmEnabled
+  const swarmEnabled = opts.swarmEnabled ?? process.env.PAPERCLIP_SWARM === "1";
+  const log = logger.child({ service: "app-init" });
+  log.info({ swarmEnabled, deploymentMode: opts.deploymentMode }, "App initialization with swarm flag");
 
   // Respect the operator's `TRUST_PROXY` env var (see middleware/trust-proxy.ts).
   // Default is unset → Express trusts nothing, which is the only safe choice
@@ -218,6 +232,60 @@ export async function createApp(
       companyDeletionEnabled: opts.companyDeletionEnabled,
     }),
   );
+
+  // MCP Swarm — feature-flagged parallel layer
+  const swarmWatchdogBridge = createSwarmWatchdogBridge();
+  let swarmServer: McpSwarmServer | null = null;
+  let telemetryServer: SwarmTelemetryServer | null = null;
+  let telemetryHttpServer: ReturnType<typeof import("node:http").createServer> | null = null;
+
+  if (swarmEnabled) {
+    log.info("MCP Swarm layer enabled — starting JSON-RPC server and telemetry");
+
+    // Create the JSON-RPC 2.0 server (127.0.0.1:9090)
+    swarmServer = createMcpSwarmServer({
+      host: "127.0.0.1",
+      port: 9090,
+      dispatcher: undefined, // TODO: inject plugin-tool-dispatcher when ready
+    });
+
+    // Create the WebSocket telemetry server
+    telemetryServer = createSwarmTelemetryServer();
+
+    // Start both servers
+    await swarmServer.start();
+    const { createServer } = await import("node:http");
+    telemetryHttpServer = createServer((req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, service: "mcp-swarm-telemetry" }));
+    });
+    await new Promise<void>((resolve) => {
+      telemetryHttpServer!.listen(9091, "127.0.0.1", () => resolve());
+    });
+    await telemetryServer.start(telemetryHttpServer);
+
+    // Wire the watchdog bridge to the telemetry stream
+    swarmWatchdogBridge.start(telemetryServer);
+
+    log.info({ host: "127.0.0.1", port: 9090 }, "MCP Swarm JSON-RPC server listening");
+    log.info({ host: "127.0.0.1", port: 9091 }, "MCP Swarm WebSocket telemetry listening on /ws/swarm");
+    log.info("MCP Swarm WatchdogUIBridge health endpoint at /health/swarm");
+  } else {
+    log.info("MCP Swarm layer DISABLED — set PAPERCLIP_SWARM=1 to enable");
+  }
+
+  // MCP Swarm WatchdogUIBridge health route (always mounted, returns degraded when disabled)
+  api.get("/health/swarm", (req, res) => {
+    if (!swarmEnabled) {
+      res.status(503).json({
+        status: "disabled",
+        message: "MCP Swarm layer is disabled. Set PAPERCLIP_SWARM=1 to enable.",
+      });
+      return;
+    }
+    swarmWatchdogBridge.handleHealthRequest(req, res);
+  });
+
   api.use(openApiRoutes());
   api.use("/companies", companyRoutes(db, opts.storageService));
   api.use(llmRoutes(db));
