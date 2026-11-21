@@ -1,0 +1,298 @@
+{
+  "schema": "caysoc-global-paperclip-blueprint/v1",
+  "generated_at": "2026-11-08T16:26:03.493301+00:00",
+  "company": {
+    "name": "CaySoc Global",
+    "issue_prefix": "CSG",
+    "timezone": "Africa/Johannesburg",
+    "currency": "ZAR",
+    "locale": "en_ZA",
+    "tagline": "Proudly South African intelligence, defence, and authorized security operations - governed and auditable.",
+    "vps_target": {
+      "name": "cx-serv1",
+      "host": "192.168.0.4",
+      "user": "cx"
+    },
+    "goals": [
+      "Unify all legacy companies/capabilities into one governed CaySoc Global operation.",
+      "Deliver high-signal OSINT/risk insight with evidence and human accountability.",
+      "Run resilient cyber defence and CayScaN platform operations.",
+      "Perform only authorized, scoped security testing with approvals and chain-of-custody.",
+      "Protect data (POPIA-aware), control spend (ZAR), and improve continuously."
+    ]
+  },
+  "divisions": [
+    {
+      "id": "indaba",
+      "name": "Indaba - Command & Strategy",
+      "mandate": "Mission, goals, budgets, approvals, portfolio."
+    },
+    {
+      "id": "isibani",
+      "name": "Isibani - Intelligence & OSINT",
+      "mandate": "Authorized/public-source collection, enrichment, correlation."
+    },
+    {
+      "id": "umlenze",
+      "name": "Umlenze - Graph & Risk Insight",
+      "mandate": "Entity/risk graph, evidence linkage, trends."
+    },
+    {
+      "id": "isivikelo",
+      "name": "Isivikelo - Defence & Platform",
+      "mandate": "Monitoring, detection, hardening, IR, CayScaN platform."
+    },
+    {
+      "id": "ibhubesi",
+      "name": "Ibhubesi Lab - Authorized Security Testing",
+      "mandate": "Scoped/authorized testing only; validation and retest."
+    },
+    {
+      "id": "isiqiniseko",
+      "name": "Isiqiniseko - Governance, QA & Reporting",
+      "mandate": "QA, chain-of-custody, compliance mapping, reporting."
+    }
+  ],
+  "roles": [
+    {
+      "id": "sipho",
+      "name": "Sipho",
+      "title": "Director / CEO Agent",
+      "division": "indaba",
+      "reports_to": null,
+      "aliases": [
+        "Crossbow",
+        "Nous",
+        "Crossfire",
+        "Zenith"
+      ],
+      "model_tier": "premium"
+    },
+    {
+      "id": "rands",
+      "name": "Rands",
+      "title": "Ops & Cost Analyst (ZAR)",
+      "division": "indaba",
+      "reports_to": "sipho",
+      "aliases": [
+        "Ops Accountant"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "naledi",
+      "name": "Naledi",
+      "title": "OSINT & Intelligence Lead",
+      "division": "isibani",
+      "reports_to": "sipho",
+      "aliases": [
+        "Oracle",
+        "Vigil",
+        "Source Sweeper"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "lerato",
+      "name": "Lerato",
+      "title": "Data Correlator",
+      "division": "isibani",
+      "reports_to": "naledi",
+      "aliases": [
+        "Data Correlator",
+        "Weaver"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "thabo",
+      "name": "Thabo",
+      "title": "Graph & Risk Lead",
+      "division": "umlenze",
+      "reports_to": "sipho",
+      "aliases": [
+        "Thabo"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "aegis",
+      "name": "Aegis",
+      "title": "Defence & Platform Lead",
+      "division": "isivikelo",
+      "reports_to": "sipho",
+      "aliases": [
+        "Aegis",
+        "Sentinel",
+        "Bulwark"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "kopano",
+      "name": "Kopano",
+      "title": "Platform Engineer (CayScaN/Sensors)",
+      "division": "isivikelo",
+      "reports_to": "aegis",
+      "aliases": [
+        "Traceback",
+        "Nyx (authorized)"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "zanele",
+      "name": "Zanele",
+      "title": "Authorized Testing Lab Lead",
+      "division": "ibhubesi",
+      "reports_to": "sipho",
+      "aliases": [
+        "Zanele",
+        "Razor",
+        "Viper/Strike/Mobile"
+      ],
+      "model_tier": "premium"
+    },
+    {
+      "id": "verifier",
+      "name": "Verifier",
+      "title": "Finding & Exploit Verifier",
+      "division": "ibhubesi",
+      "reports_to": "zanele",
+      "aliases": [
+        "Verifier",
+        "Validator",
+        "Tester"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "thandi",
+      "name": "Thandi",
+      "title": "Compliance & Reporting Lead",
+      "division": "isiqiniseko",
+      "reports_to": "sipho",
+      "aliases": [
+        "Thandi",
+        "Report Generator",
+        "Summarizer"
+      ],
+      "model_tier": "standard"
+    },
+    {
+      "id": "themba",
+      "name": "Themba",
+      "title": "QA & Chain-of-Custody Auditor",
+      "division": "isiqiniseko",
+      "reports_to": "thandi",
+      "aliases": [
+        "Reflection Coach",
+        "Auditor",
+        "Criterion"
+      ],
+      "model_tier": "standard"
+    }
+  ],
+  "governance": {
+    "default_flow": [
+      "agent_output",
+      "qa_audit",
+      "artifact_or_vault"
+    ],
+    "human_approval_required": [
+      "offensive/intrusive actions",
+      "external disclosures",
+      "person/org risk publications",
+      "confidential/restricted data or secrets",
+      "budget exceptions",
+      "production infra changes"
+    ],
+    "prohibited_without_authorization": [
+      "unauthorized access/exploitation/credential abuse/impersonation",
+      "unsanctioned surveillance/exfiltration",
+      "out-of-scope actions"
+    ],
+    "evidence": [
+      "timestamp",
+      "actor",
+      "scope_ref",
+      "artifact_hash_or_path",
+      "qa_status"
+    ],
+    "data_classes": [
+      "Public",
+      "Internal",
+      "Confidential",
+      "Restricted"
+    ]
+  },
+  "routines_sast": [
+    {
+      "name": "Morning Ops Brief",
+      "cron": "0 6 * * *",
+      "owner": "sipho"
+    },
+    {
+      "name": "Intel & Source Refresh",
+      "cron": "0 7 * * *",
+      "owner": "naledi"
+    },
+    {
+      "name": "Graph & Risk Update",
+      "cron": "0 9 * * 1,3,5",
+      "owner": "thabo"
+    },
+    {
+      "name": "Platform & Sensor Health",
+      "cron": "0 12 * * *",
+      "owner": "aegis"
+    },
+    {
+      "name": "QA & Evidence Audit",
+      "cron": "0 15 * * *",
+      "owner": "themba"
+    },
+    {
+      "name": "Weekly Portfolio Review",
+      "cron": "0 14 * * 5",
+      "owner": "sipho"
+    },
+    {
+      "name": "Monthly Compliance & Cost Review",
+      "cron": "0 8 1 * *",
+      "owner": "thandi"
+    }
+  ],
+  "legacy_streams": [
+    {
+      "name": "HaCakeSec Legacy",
+      "source": "paperclip/hacakesec-org-map.md (HACAAA)",
+      "status": "merge-base"
+    },
+    {
+      "name": "0xSec Platform",
+      "source": "0xsec.za/paperclip + hr/0xsec.za (33)",
+      "status": "capability-merge"
+    },
+    {
+      "name": "Caelum Recon",
+      "source": "0xsec.za/hr/Caelum.za (9)",
+      "status": "capability-merge"
+    },
+    {
+      "name": "xploit Lab",
+      "source": "0xsec.za/hr/xploit.za (24)",
+      "status": "capability-merge (gated)"
+    },
+    {
+      "name": "CayScaN Platform",
+      "source": "Hermes_26/Cay_Web_Scan",
+      "status": "platform-integration"
+    },
+    {
+      "name": "God's Eye Viz",
+      "source": "bilawalsidhu/gods-eye-view (reference)",
+      "status": "visualization-integration"
+    }
+  ]
+}

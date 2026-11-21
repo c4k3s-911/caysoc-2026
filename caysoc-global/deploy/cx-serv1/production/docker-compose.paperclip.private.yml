@@ -1,0 +1,68 @@
+# CaySoc Global - Paperclip PRIVATE compose (cx-serv1 / 192.168.0.4)
+# Based on read-only inspection of /home/cx/caysoc/docker-compose.paperclip.yml.
+# CHANGES vs existing: no host port publish, no socat paperclip-expose sidecar, secrets via env file, localhost bind guidance.
+# VERIFY before use: image/build, DB mode, volume, network, and that your Paperclip build honors bind/env vars.
+# DO NOT use the existing compose as-is for production: it publishes 3100:3100 and includes an expose sidecar, and has hardcoded secrets.
+
+services:
+  paperclip:
+    container_name: paperclip
+    image: caysoc-paperclip:latest  # or: build: { context: /home/cx/caysoc, dockerfile: Dockerfile }
+    env_file:
+      - .env.paperclip.private  # create from .env.paperclip.private.example; never commit
+    environment:
+      TZ: Africa/Johannesburg
+      NODE_ENV: production
+      HOST: "127.0.0.1"                 # bind loopback inside container; reach via proxy/SSH from host namespace as appropriate
+      PORT: "3100"
+      PAPERCLIP_HOME: "/paperclip"
+      SERVE_UI: "true"
+      PAPERCLIP_DEPLOYMENT_MODE: "local_trusted"   # VERIFY: use the mode your build expects
+      PAPERCLIP_BIND: "loopback"
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
+      # PAPERCLIP_PUBLIC_URL should be your private URL (tailnet/VPN/internal), not a public/LAN-exposed URL.
+    expose:
+      - "3100"   # internal compose network only; no host publish
+    volumes:
+      - paperclip-data:/paperclip
+    networks:
+      - caysoc_internal
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  caysoc-dashboard-aggregator:
+    container_name: caysoc-dashboard-aggregator
+    image: node:24-alpine  # PIN digest/tag in production
+    working_dir: /app
+    profiles: ["dashboard"]
+    env_file:
+      - .env.aggregator  # optional
+    environment:
+      TZ: Africa/Johannesburg
+      BIND: "0.0.0.0"      # container-internal; exposed only to caysoc_internal/reverse proxy, not host-published
+      PORT: "4310"
+      CAYSOC_MOCK: "0"
+      ZERODAY_ROOT: "/data/0days"
+      PAPERCLIP_BASE_URL: "http://paperclip:3100"
+    volumes:
+      - /home/cx/caysoc/dashboard-aggregator:/app:ro   # deploy built/copied source + node_modules appropriately
+      - /home/cx/caysoc/data/0days:/data/0days:ro
+    expose:
+      - "4310"
+    networks:
+      - caysoc_internal
+    command: ["node", "src/server.js"]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  caysoc_internal:
+    driver: bridge
+    # If you must join existing caysoc_default, do so deliberately; default here is isolated.
+
+volumes:
+  paperclip-data:
+    external: true
+    name: paperclip-data

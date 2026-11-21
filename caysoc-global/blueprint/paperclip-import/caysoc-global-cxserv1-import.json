@@ -1,0 +1,380 @@
+{
+  "bundle": "caysoc-global-cxserv1-import/v2",
+  "verify_before_apply": true,
+  "target_existing_company_hint": {
+    "check_first": true,
+    "possible_existing": {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "CaySoc Global",
+      "issuePrefix": "CAY",
+      "brandColor": "#1a73e8"
+    },
+    "action": "If company exists: PATCH/update/merge (do not duplicate). Use returned companyId for agent/routine/goal creates.",
+    "discovered_live_candidate": {
+      "id": "41c10498-4d31-4f66-8f0c-b61058088b76",
+      "evidence": "cx-serv1 paperclip logs showed GET /CAY/dashboard and /issues/CAY-1 and company-scoped APIs for this ID (container exited EACCES on backup, 6 days ago; verify after restart)",
+      "action": "VERIFY after Paperclip restart; merge/update this company if it is CaySoc Global. Do not duplicate."
+    },
+    "note": "Local dashboard_data.json showed a different CaySoc Global ID in another context; cx-serv1 live logs show 41c10498.../CAY. Treat cx-serv1 live instance as source of truth."
+  },
+  "operations": [
+    {
+      "op": "company.find_or_create",
+      "notes": "GET /api/companies and match name/issuePrefix/id; else POST /api/companies with createCompanySchema only.",
+      "body": {
+        "name": "CaySoc Global",
+        "description": "CaySoc Global — proudly South African unified governed operations (Indaba, Isibani, Umlenze, Isivikelo, Ibhubesi Lab gated, Isiqiniseko). SAST/ZAR. Legacy aliases preserved.",
+        "budgetMonthlyCents": 0
+      }
+    },
+    {
+      "op": "company.update",
+      "notes": "PATCH /api/companies/:companyId after create/find. Apply fields supported by running build.",
+      "body": {
+        "status": "active",
+        "brandColor": "#1a73e8",
+        "requireBoardApprovalForNewAgents": true
+      }
+    },
+    {
+      "op": "company.branding",
+      "notes": "PATCH /api/companies/:companyId/branding if supported; set logoAssetId only after uploading/confirming asset exists.",
+      "body": {
+        "name": "CaySoc Global",
+        "description": "CaySoc Global (CSG) — proudly South African",
+        "brandColor": "#1a73e8",
+        "logoAssetId": "__CONFIRM_EXISTING_OR_UPLOAD__"
+      }
+    },
+    {
+      "op": "goals.create",
+      "notes": "POST /api/companies/:companyId/goals. Store returned IDs if needed.",
+      "items": [
+        {
+          "key": "g1",
+          "body": {
+            "title": "Unify CaySoc Global operations",
+            "description": "Operate as one governed CaySoc Global entity with preserved legacy aliases and ZAR/SAST reporting.",
+            "level": "company",
+            "status": "active"
+          }
+        },
+        {
+          "key": "g2",
+          "body": {
+            "title": "Governed security & evidence pipeline",
+            "description": "Research, testing, validation, QA, evidence, and approval gates for high-stakes actions.",
+            "level": "company",
+            "status": "active"
+          }
+        },
+        {
+          "key": "g3",
+          "body": {
+            "title": "Unified dashboard and 0Day/ZAR telemetry",
+            "description": "Realtime 0-day counts and ZAR valuation across CaySoc Global and legacy streams.",
+            "level": "company",
+            "status": "active"
+          }
+        }
+      ]
+    },
+    {
+      "op": "agents.create_two_pass",
+      "notes": "POST /api/companies/:companyId/agents. Create in order; resolve reportsTo symbolic keys to UUIDs from prior responses. Verify adapterType against target (use installed Hermes/adapter; fallback process/claude_local only if intentionally configured).",
+      "items": [
+        {
+          "key": "sipho",
+          "body": {
+            "name": "Sipho",
+            "role": "ceo",
+            "title": "CaySoc Global CEO / Intake",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "permissions": {
+              "canCreateAgents": false,
+              "canCreateSkills": false
+            },
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "legacyAliases": [
+                "HACAKE-001",
+                "Intake-Owner",
+                "CSG-CEO"
+              ]
+            }
+          }
+        },
+        {
+          "key": "thandi",
+          "body": {
+            "name": "Thandi",
+            "role": "general",
+            "title": "Indaba PM / Portfolio",
+            "reportsToKey": "sipho",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Indaba",
+              "legacyAliases": [
+                "HACAKE-010",
+                "PM-Lead",
+                "Caelum planner patterns"
+              ]
+            }
+          }
+        },
+        {
+          "key": "anele",
+          "body": {
+            "name": "Anele",
+            "role": "general",
+            "title": "Isibani Research Lead",
+            "reportsToKey": "sipho",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Isibani",
+              "legacyAliases": [
+                "HAKASE-002",
+                "Caelum Researcher",
+                "0xSec Recon"
+              ]
+            }
+          }
+        },
+        {
+          "key": "lerato",
+          "body": {
+            "name": "Lerato",
+            "role": "general",
+            "title": "Umlenze Delivery Lead",
+            "reportsToKey": "thandi",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Umlenze",
+              "legacyAliases": [
+                "HACAKE-021",
+                "Caelum Engineer"
+              ]
+            }
+          }
+        },
+        {
+          "key": "jabu",
+          "body": {
+            "name": "Jabu",
+            "role": "general",
+            "title": "Isivikelo Security & Trust",
+            "reportsToKey": "sipho",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Isivikelo",
+              "legacyAliases": [
+                "HACAKE-031",
+                "0xSec Reporter/Validator patterns"
+              ]
+            }
+          }
+        },
+        {
+          "key": "naledi",
+          "body": {
+            "name": "Naledi",
+            "role": "general",
+            "title": "Isiqiniseko QA / Evidence / Release Gate",
+            "reportsToKey": "sipho",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Isiqiniseko",
+              "legacyAliases": [
+                "HACAKE-041",
+                "0xSec Validator"
+              ]
+            }
+          }
+        },
+        {
+          "key": "khaya",
+          "body": {
+            "name": "Khaya",
+            "role": "general",
+            "title": "Ibhubesi Lab Lead (GATED)",
+            "reportsToKey": "sipho",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Ibhubesi",
+              "gated": true,
+              "legacyAliases": [
+                "xploit Red Team Lead",
+                "HACAKE-001 gate"
+              ],
+              "policy": "authorized_scope_and_human_approval_required"
+            }
+          }
+        },
+        {
+          "key": "nomsa_ops",
+          "body": {
+            "name": "Nomsa-Ops",
+            "role": "general",
+            "title": "Operations / Routines / Heartbeat",
+            "reportsToKey": "thandi",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "legacyAliases": [
+                "HACAKE-013",
+                "CayScaN ops"
+              ]
+            }
+          }
+        },
+        {
+          "key": "zola_scan",
+          "body": {
+            "name": "Zola-Scan",
+            "role": "general",
+            "title": "CayScaN Recon & Telemetry (read-only default)",
+            "reportsToKey": "anele",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Isibani/Isivikelo",
+              "legacyAliases": [
+                "CayScaN agents"
+              ],
+              "policy": "read_only_metrics_by_default"
+            }
+          }
+        },
+        {
+          "key": "mpho_dash",
+          "body": {
+            "name": "Mpho-Dash",
+            "role": "general",
+            "title": "Dashboard & 0Day/ZAR Metrics",
+            "reportsToKey": "thandi",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "legacyAliases": [
+                "Hermes/Dashboard builder"
+              ],
+              "streams": [
+                "HaCakeSec",
+                "0xSec",
+                "Caelum",
+                "xploit",
+                "CayScaN"
+              ]
+            }
+          }
+        },
+        {
+          "key": "themba_evidence",
+          "body": {
+            "name": "Themba-Evidence",
+            "role": "general",
+            "title": "Evidence Vault & Reporting",
+            "reportsToKey": "naledi",
+            "adapterType": "__VERIFY_ADAPTER__",
+            "adapterConfig": {},
+            "budgetMonthlyCents": 0,
+            "metadata": {
+              "division": "Isiqiniseko",
+              "legacyAliases": [
+                "0xSec Reporter"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "op": "routines.create_with_triggers",
+      "notes": "POST /companies/:companyId/routines, then POST /routines/:id/triggers for schedules. Use Africa/Johannesburg.",
+      "items": [
+        {
+          "key": "r_ops_heartbeat",
+          "routine": {
+            "title": "CSG Ops Heartbeat",
+            "description": "Operational status, blocked items, and dashboard health check.",
+            "status": "active",
+            "priority": "high",
+            "concurrencyPolicy": "coalesce_if_active",
+            "catchUpPolicy": "skip_missed"
+          },
+          "triggers": [
+            {
+              "kind": "schedule",
+              "label": "Every 4h SAST",
+              "cronExpression": "0 */4 * * *",
+              "timezone": "Africa/Johannesburg",
+              "enabled": true
+            }
+          ],
+          "assigneeKey": "nomsa_ops"
+        },
+        {
+          "key": "r_daily",
+          "routine": {
+            "title": "CSG Daily Status Digest",
+            "description": "Daily digest across legacy streams, 0Day counts/valuation deltas, risks, and approvals.",
+            "status": "active",
+            "priority": "medium"
+          },
+          "triggers": [
+            {
+              "kind": "schedule",
+              "label": "Daily 08:00 SAST",
+              "cronExpression": "0 8 * * *",
+              "timezone": "Africa/Johannesburg",
+              "enabled": true
+            }
+          ],
+          "assigneeKey": "thandi"
+        },
+        {
+          "key": "r_weekly",
+          "routine": {
+            "title": "CSG Weekly Portfolio Review",
+            "description": "Weekly portfolio, ZAR budget/cost, QA evidence status, governed security posture.",
+            "status": "active",
+            "priority": "medium"
+          },
+          "triggers": [
+            {
+              "kind": "schedule",
+              "label": "Mon 09:00 SAST",
+              "cronExpression": "0 9 * * 1",
+              "timezone": "Africa/Johannesburg",
+              "enabled": true
+            }
+          ],
+          "assigneeKey": "thandi"
+        }
+      ]
+    }
+  ],
+  "post_import_checks": [
+    "Confirm no duplicate CaySoc Global companies; archive/merge only with explicit approval.",
+    "Set real adapter types/configs and secret env bindings via approved secret paths.",
+    "Verify routine triggers show nextRunAt in Africa/Johannesburg as expected by the build.",
+    "Run dry-run task: Mpho-Dash updates dashboard; Naledi/Themba-Evidence produce governed evidence note.",
+    "Confirm Ibhubesi/Zola-Scan permissions are least-privilege and gated."
+  ]
+}

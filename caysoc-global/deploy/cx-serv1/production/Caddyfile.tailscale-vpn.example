@@ -1,0 +1,73 @@
+# CaySoc Global - Caddy access patterns for Paperclip (:3100) + Dashboard Aggregator (:4310)
+# Choose ONE pattern. Prefer private access (Tailscale/VPN/LAN ACL). Do NOT expose 3100/4310 publicly by default.
+# Bind upstream services to 127.0.0.1 (or tailnet interface) and let Caddy/proxy be the controlled entrypoint.
+
+# -----------------------------------------------------------------------------
+# Pattern A (RECOMMENDED): Tailscale private access via Caddy on cx-serv1 tailnet
+# -----------------------------------------------------------------------------
+# Prereqs:
+# - Install Tailscale on cx-serv1 and admin devices; join same tailnet.
+# - Optionally enable MagicDNS/HTTPS certs in Tailscale admin if using tailnet FQDN.
+# - Run Paperclip bound to 127.0.0.1:3100 and aggregator bound to 127.0.0.1:4310.
+# - Run Caddy on cx-serv1; restrict OS firewall to tailscale0/tailnet source ranges as appropriate.
+# - Use Tailscale Serve for simplest private HTTPS, OR Caddy as shown below.
+#
+# If using Caddy with a tailnet FQDN/cert you control:
+# cxserv1.your-tailnet.ts.net {
+#   # Optional: add auth (basic_auth / forward_auth / OAuth proxy) before production use.
+#   # basic_auth {
+#   #   caysoc_admin $2a$14$REPLACE_WITH_BCRYPT_HASH
+#   # }
+#
+#   handle_path /csg/dashboard/api/* {
+#     reverse_proxy 127.0.0.1:4310
+#   }
+#   handle /api/csg/dashboard/* {
+#     reverse_proxy 127.0.0.1:4310
+#   }
+#   handle /api/csg/dashboard/live {
+#     reverse_proxy 127.0.0.1:4310
+#   }
+#   handle {
+#     reverse_proxy 127.0.0.1:3100
+#   }
+#   header {
+#     -Server
+#     Strict-Transport-Security "max-age=31536000; includeSubDomains"
+#     X-Content-Type-Options "nosniff"
+#     X-Frame-Options "SAMEORIGIN"
+#     Referrer-Policy "strict-origin-when-cross-origin"
+#   }
+#   log
+# }
+#
+# Tailscale Serve alternative (private to tailnet; do not use Funnel unless explicitly approved):
+#   tailscale serve --bg --https=443 http://127.0.0.1:3100
+#   tailscale serve --bg --https=443 --set-path /api/csg/dashboard http://127.0.0.1:4310
+# (Verify exact path/strip behavior for your setup; Caddy gives more explicit control.)
+
+# -----------------------------------------------------------------------------
+# Pattern B: VPN/LAN-only access with strict ACLs
+# -----------------------------------------------------------------------------
+# - Expose Caddy only on VPN interface/LAN IP (not 0.0.0.0 public). Firewall deny 3100/4310 from WAN.
+# - Example: bind Caddy site to internal IP or use firewall rules (ufw/nftables/cloud SG).
+# 192.168.0.4 {
+#   tls internal  # or replace with real/internal CA cert
+#   reverse_proxy 127.0.0.1:3100
+# }
+# 192.168.0.4:4311 {  # optional separate internal listener; better to path-route on one origin
+#   tls internal
+#   reverse_proxy 127.0.0.1:4310
+# }
+
+# -----------------------------------------------------------------------------
+# Pattern C: SSH local port forwards (admin break-glass, no persistent exposure)
+# -----------------------------------------------------------------------------
+#   ssh -L 3100:127.0.0.1:3100 -L 4310:127.0.0.1:4310 cx@192.168.0.4
+# Then open http://127.0.0.1:3100 and http://127.0.0.1:4310 locally.
+# Preferred for emergency/admin use. Use SSH keys and disable password auth after validation.
+
+# Security notes
+# - Never commit real tokens, auth secrets, or Tailscale keys.
+# - Apply authentication at Paperclip and/or proxy; 3100/4310 should not be anonymously reachable.
+# - Ibhubesi/CayScaN offensive controls remain gated regardless of network access.

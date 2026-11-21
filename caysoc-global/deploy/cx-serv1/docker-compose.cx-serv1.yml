@@ -1,0 +1,28 @@
+# CaySoc Global - Paperclip on cx-serv1 (Linux VPS 192.168.0.4)
+services:
+  paperclip:
+    image: node:24.11-alpine
+    container_name: caysoc-paperclip
+    restart: unless-stopped
+    working_dir: /app
+    env_file: [.env]
+    environment:
+      TZ: ${TZ:-Africa/Johannesburg}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "127.0.0.1:${PAPERCLIP_PORT:-3100}:3100"  # restrict; expose via VPN/reverse proxy
+    volumes:
+      - /home/cx/caysoc/paperclip/app:/app      # LINUX path on cx-serv1
+      - caysoc_paperclip_data:/data
+    command: >
+      sh -lc "corepack enable || true; npm i -g pnpm@9 2>/dev/null || true;
+      pnpm install --frozen-lockfile || pnpm install;
+      pnpm db:migrate || true;
+      pnpm start || pnpm dev --host 0.0.0.0 --port 3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  caysoc_paperclip_data:

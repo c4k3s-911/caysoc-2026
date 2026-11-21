@@ -1,0 +1,43 @@
+# CaySoc Global - cx-serv1 production profile (hardened baseline)
+# Use with: docker compose -f docker-compose.prod.yml --env-file .env up -d
+services:
+  paperclip:
+    image: node:24.11-alpine # PIN to vetted digest/tag in production
+    container_name: caysoc-paperclip
+    restart: unless-stopped
+    working_dir: /app
+    env_file: [.env]
+    environment:
+      TZ: ${TZ:-Africa/Johannesburg}
+      NODE_ENV: production
+    expose:
+      - "3100" # internal only; publish via reverse proxy on trusted network
+    networks: [caysoc_internal]
+    volumes:
+      - /home/cx/caysoc/paperclip/app:/app:ro # prefer built image; mount read-only if feasible
+      - caysoc_data:/data
+    read_only: false # set true when runtime/image supports writable tmp paths
+    security_opt: ["no-new-privileges:true"]
+    command: >
+      sh -lc "corepack enable || true; pnpm start || pnpm dev --host 0.0.0.0 --port 3100"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caysoc-caddy
+    restart: unless-stopped
+    profiles: ["edge"] # enable when you have DNS/TLS and want public/internal HTTPS
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [caysoc_internal]
+
+networks:
+  caysoc_internal: {}
+volumes:
+  caysoc_data: {}
+  caddy_data: {}
+  caddy_config: {}

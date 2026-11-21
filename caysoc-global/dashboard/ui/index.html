@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#0b0f14" />
+<title>CaySoc Global — Unified Dashboard</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1e2a36; --ink:#e6edf3; --muted:#8b9bab;
+    --blue:#1a73e8; --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --violet:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#13243a 0%,var(--bg) 60%);color:var(--ink);font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:16px 26px;border-bottom:1px solid var(--line);background:#0d131a}
+  .mark{display:flex;align-items:center;gap:12px}
+  .crest{width:42px;height:42px;border-radius:10px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:0 0 auto;box-shadow:0 0 0 1px var(--line)}
+  .crest img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block}
+  h1{font-size:17px;margin:0;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:12px}
+  .hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--muted);background:#101720;white-space:nowrap}
+  .pill.live{color:var(--green);border-color:#1d5134;background:#0d2118;animation:breathe 2.4s ease-in-out infinite}
+  .pill.warn{color:var(--amber);border-color:#5a4215;background:#241b0d}
+  .pill.off{color:var(--red);border-color:#5a2020;background:#241010}
+  @keyframes breathe{50%{box-shadow:0 0 0 4px #22c55e18}}
+  .clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+
+  /* status / connectivity strip */
+  .statusbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 26px;border-bottom:1px solid var(--line);background:#0a1016}
+  .statusbar .taglbl{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#617284;margin-right:2px}
+  .dot{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);background:#0e151d;white-space:nowrap}
+  .dot i{width:7px;height:7px;border-radius:50%;background:#3b4a58;flex:0 0 auto}
+  .dot.ok{color:#b7e4c7}.dot.ok i{background:var(--green);box-shadow:0 0 7px #22c55e90}
+  .dot.warn{color:#f0d293}.dot.warn i{background:var(--amber);box-shadow:0 0 7px #f59e0b80}
+  .dot.off{color:#f2b8b8}.dot.off i{background:var(--red);box-shadow:0 0 7px #ef444480}
+
+  main{padding:22px 26px;max-width:1560px;margin:auto}
+  .ticker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:14px}
+  .kpi{background:linear-gradient(160deg,#141d28,#101720);border:1px solid var(--line);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden;min-height:112px}
+  .kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--blue))}
+  .kpi .label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .kpi .value{font-size:clamp(17px,1.5vw,22px);font-weight:750;font-variant-numeric:tabular-nums;margin-top:6px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .alt{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;margin-top:5px}
+  .delta{font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;letter-spacing:0;white-space:nowrap}
+  .delta.up{color:var(--green);background:#0f2b1c}.delta.down{color:var(--red);background:#2b1212}.delta.flat{color:#64748b;background:#16202b}
+  .kpi.mix .value,.kpi.pulse .value{font-size:14px;padding-top:8px;white-space:normal;overflow:visible}
+  .kpi.mix .mixbar{height:8px}
+  .mixbar{height:7px;border-radius:6px;background:#1b2632;overflow:hidden;display:flex;margin-top:7px}
+  .mixbar i{display:block;height:100%}
+  .mixn{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sevs{display:flex;gap:5px;flex-wrap:wrap}
+  .sev{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+  .sev.crit{color:#fca5a5;background:#3a1414}.sev.high{color:#fbbf24;background:#33240c}.sev.med{color:#93c5fd;background:#13253a}
+
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin:22px 0 12px;display:flex;align-items:center;gap:10px}
+  h2:after{content:"";flex:1;height:1px;background:var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(305px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;position:relative;display:flex;flex-direction:column;gap:12px;transition:transform .15s,border-color .15s}
+  .card:hover{transform:translateY(-2px);border-color:#2e4255}
+  .cardhead{display:flex;align-items:center;gap:10px;padding-right:66px;min-height:42px}
+  .badge{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:#fff;overflow:hidden;flex:0 0 auto;border:1px solid var(--line)}
+  .badge img{width:100%;height:100%;object-fit:contain;display:block}
+  .badge.cs{background:#052e26;border-color:#1d5134}
+  .ident{min-width:0}.ident h3{margin:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .alias{color:var(--muted);font-size:10.5px}
+  .status{position:absolute;top:15px;right:15px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#101720}
+  .status.active{color:var(--green);border-color:#1d5134;background:#0d2118}
+  .valueblock{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+  .label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.9px}
+  .big{font-size:clamp(16px,1.4vw,21px);font-weight:760;line-height:1.1;font-variant-numeric:tabular-nums;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zar{color:var(--green)}.usd{color:var(--muted);font-size:10.5px;font-variant-numeric:tabular-nums;margin-top:2px}
+  .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .metric{background:#0f151d;padding:7px 9px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-variant-numeric:tabular-nums}
+  .metric span{color:var(--muted);font-size:10.5px}
+  .metric strong{font-size:12px;font-weight:700}
+  .metric strong.bad{color:var(--red)}
+  .healthrow{display:flex;flex-wrap:wrap;gap:6px;min-height:20px}
+  .tag{font-size:9.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px;background:#101720;white-space:nowrap}
+  .tag.ok{color:#8fd6a8;border-color:#1d5134;background:#0d2118}
+  .tag.warn{color:#f0c674;border-color:#5a4215;background:#241b0d}
+
+  /* governance module */
+  .govtools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+  input,select,button{font:inherit;color:var(--ink);background:#0e151d;border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+  input:focus,select:focus{outline:none;border-color:#2e6fbd}
+  button{cursor:pointer;background:#16324f;border-color:#255888}
+  button:hover{background:#1d4268}
+  .muted{color:var(--muted);font-size:11px}
+  .govkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+  .govkpi{background:#101720;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .govkpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums;margin-top:3px}
+  .govgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .govpanel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+  .govpanel h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:6px;border-bottom:1px dashed var(--line);vertical-align:top}
+  td .mini{display:block;color:var(--muted);font-size:10px;margin-top:2px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sevpill{font-size:9px;padding:1px 6px;border-radius:999px;font-weight:700;text-transform:uppercase}
+  .sevpill.critical{background:#3a1414;color:#fca5a5}.sevpill.high{background:#33240c;color:#fbbf24}.sevpill.medium{background:#13253a;color:#93c5fd}.sevpill.low{background:#16241b;color:#86efac}
+  .sevpill.current{background:#16241b;color:#86efac}.sevpill.stale{background:#33240c;color:#fbbf24}.sevpill.missing{background:#3a1414;color:#fca5a5}
+  .grade{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;font-weight:800;font-size:12px}
+  .grade.A{background:#16241b;color:#86efac}.grade.B{background:#13253a;color:#93c5fd}.grade.C{background:#33240c;color:#fbbf24}.grade.D{background:#3a2408;color:#fb923c}.grade.F{background:#3a1414;color:#fca5a5}
+  .govform{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .govform input{flex:1 1 120px;min-width:0}
+  .consent{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
+  .consent input{flex:0 0 auto;width:auto;min-width:0}
+  .govhint{color:var(--muted);font-size:11px;padding:10px 0}
+  .opsbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .alert{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:8px;padding:8px 10px;background:#101720;font-size:11.5px}
+  .alert.critical{border-left-color:var(--red);background:#1a1010}
+  .alert.info{border-left-color:var(--blue)}
+  .alert b{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .tracebox{white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:auto;background:#0a1016;border:1px solid var(--line);border-radius:8px;padding:10px;font:11px/1.5 ui-monospace,monospace;margin-top:8px}
+  .opssec{margin-top:14px}
+  @media(max-width:1100px){.govgrid{grid-template-columns:1fr}}
+  @media(max-width:820px){.govkpis{grid-template-columns:repeat(2,1fr)}}
+  footer{margin:26px 0 10px;color:var(--muted);font-size:11px;display:flex;flex-wrap:wrap;gap:18px;border-top:1px solid var(--line);padding-top:14px}
+  .govern{color:var(--amber)}
+  @media(max-width:1200px){.ticker{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:820px){.ticker{grid-template-columns:repeat(2,1fr)}header{padding:14px}main{padding:16px}.statusbar{padding:9px 16px}.hdr-right{margin-left:0}.valueblock{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark"><span class="crest"><img src="/logos/caysoc.png" alt="CaySoc Global" /></span><div><h1>CaySoc Global</h1><div class="sub">Unified Operations · Proudly South African</div></div></div>
+  <div class="hdr-right">
+    <span class="pill" id="fx">USD/ZAR —</span>
+    <span class="clock" id="clock">— SAST</span>
+  </div>
+</header>
+<div class="statusbar">
+  <span class="taglbl">Status</span>
+  <span class="pill warn" id="conn">● CONNECTING</span>
+  <span class="pill" id="age">updated —</span>
+  <span class="pill" id="mode" title="—">mode —</span>
+  <span class="dot" id="dot-zd" title="0-day register"><i></i>0-day</span>
+  <span class="dot" id="dot-pc" title="Paperclip adapter"><i></i>paperclip</span>
+  <span class="dot" id="dot-cs" title="CayScaN adapter"><i></i>cayscan</span>
+  <span class="pill govern" id="gov" hidden>⚿ GOVERNED</span>
+  <span class="pill" title="Private host">cx-serv1 · private</span>
+</div>
+<main>
+  <section class="ticker" id="kpis"></section>
+  <section><h2>Streams · 0-day &amp; valuation</h2><div class="grid" id="streams"></div></section>
+  <section><h2>Governance · governed intake &amp; authorized lab scopes</h2>
+    <div class="govtools">
+      <input id="govToken" type="password" placeholder="operator / board token (optional)" autocomplete="off" />
+      <span class="muted" id="govRole">public · summary only</span>
+      <button id="govRefresh" type="button">Refresh</button>
+    </div>
+    <div class="govkpis" id="govKpis"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Authorized lab scopes</h3><div id="govScopes"></div>
+        <div class="govform" id="scopeForm">
+          <input id="scName" placeholder="scope name" />
+          <input id="scTargets" placeholder="targets: *.lab.example, 10.0.0.5" />
+          <input id="scTools" placeholder="tools: cayscan, nmap" />
+          <button id="scCreate" type="button">Create scope</button>
+        </div>
+      </div>
+      <div class="govpanel"><h3>0-day intake vault</h3><div id="govFindings"></div>
+        <div class="govform" id="findingForm">
+          <input id="fdTitle" placeholder="finding title" />
+          <input id="fdCompany" placeholder="company" />
+          <select id="fdSeverity"><option value="high">high</option><option value="critical">critical</option><option value="medium">medium</option><option value="low">low</option></select>
+          <button id="fdCreate" type="button">New intake</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section><h2>Agent Ops · control room</h2>
+    <div class="opsbar">
+      <span class="muted" id="opsRole">read-only · token above enables actions</span>
+      <span class="pill" id="opsHealth">—</span>
+      <span class="pill" id="opsQuota">● QUOTA —</span>
+      <button id="opsRefresh" type="button">Reload</button>
+    </div>
+    <div class="govkpis" id="opsKpis"></div>
+    <div class="grid" id="opsAlerts" style="margin-bottom:12px"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Agents</h3><div id="opsAgents"></div></div>
+      <div class="govpanel">
+        <h3>Model health &amp; recent runs</h3>
+        <div id="opsModels"></div>
+        <div class="opssec" id="opsRuns"></div>
+        <div id="opsTrace"></div>
+      </div>
+    </div>
+  </section>
+  <section><h2>Shadow Assets · passive exposure monitor</h2>
+    <div class="opsbar">
+      <span class="muted" id="assetRole">uses the governance token above</span>
+      <span class="pill" id="assetHealth">—</span>
+      <button id="assetDiscover" type="button">Discover now</button>
+      <button id="assetReport" type="button">Weekly report</button>
+    </div>
+    <div class="govkpis" id="assetKpis"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Tracked assets</h3><div id="assetTable"></div>
+        <div class="govform" id="seedForm">
+          <input id="seedHost" placeholder="host.example.co.za" />
+          <input id="seedOwner" placeholder="owner" />
+          <button id="seedAdd" type="button">Add host</button>
+        </div>
+      </div>
+      <div class="govpanel"><h3>Recent changes</h3><div id="assetChanges"></div><div id="assetReportOut"></div></div>
+    </div>
+  </section>
+  <section><h2>Compliance Evidence · POPIA / ISO 27001</h2>
+    <div class="opsbar">
+      <span class="muted" id="compRole">uses the governance token above</span>
+      <span class="pill" id="compHealth">—</span>
+      <button id="compExport" type="button">Audit export</button>
+    </div>
+    <div class="govkpis" id="compKpis"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Control register</h3><div id="compControls"></div>
+        <div class="govform" id="compForm">
+          <select id="evControl"></select>
+          <input id="evTitle" placeholder="evidence title" />
+          <input id="evContent" placeholder="evidence text / notes" />
+          <button id="evAdd" type="button">Add evidence</button>
+        </div>
+      </div>
+      <div class="govpanel"><h3>Outstanding gaps</h3><div id="compGaps"></div><div id="compExportOut"></div></div>
+    </div>
+  </section>
+  <section><h2>Community Threat Pulse · South Africa</h2>
+    <div class="opsbar">
+      <span class="pill live" id="commHealth">● PUBLIC SAFE</span>
+      <span class="muted" id="commRole">public aggregates · verified only</span>
+      <button id="commReport" type="button">Threat pulse report</button>
+    </div>
+    <div class="govkpis" id="commKpis"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Verified signal mix (public-safe)</h3><div id="commPublic"></div>
+        <div class="govform" id="commForm">
+          <select id="sigType">
+            <option value="phishing_domain">phishing domain</option>
+            <option value="scam_template">scam template</option>
+            <option value="lookalike">lookalike brand</option>
+            <option value="exposed_service">exposed service</option>
+            <option value="sms_pattern">SMS pattern</option>
+            <option value="email_pattern">email pattern</option>
+          </select>
+          <input id="sigValue" placeholder="suspicious URL / email / pattern" />
+          <input id="sigProvince" placeholder="province (optional)" />
+          <label class="consent"><input type="checkbox" id="sigConsent" /> opt-in consent</label>
+          <button id="sigAdd" type="button">Submit</button>
+        </div>
+        <div class="govhint">Opt-in, deduplicated, internal-only until verified. No raw value or victim detail is ever published.</div>
+        <div id="commSubmitOut"></div>
+      </div>
+      <div class="govpanel"><h3>Internal moderation queue</h3><div id="commInternal"></div><div id="commReportOut"></div></div>
+    </div>
+  </section>
+  <section><h2>SME Cyber Risk Pulse · South Africa</h2>
+    <div class="opsbar">
+      <span class="muted" id="riskRole">uses the governance token above</span>
+      <span class="pill" id="riskHealth">—</span>
+      <button id="riskRefresh" type="button">Reload</button>
+    </div>
+    <div class="govkpis" id="riskKpis"></div>
+    <div class="govgrid">
+      <div class="govpanel"><h3>Client portfolio</h3><div id="riskClients"></div>
+        <div class="govform" id="riskForm">
+          <input id="rcName" placeholder="client / company name" />
+          <input id="rcDomain" placeholder="primary domain" />
+          <input id="rcHosts" placeholder="extra hosts, comma separated" />
+          <input id="rcOwner" placeholder="owner" />
+          <button id="rcAdd" type="button">Add client</button>
+        </div>
+      </div>
+      <div class="govpanel"><h3>Latest assessment &amp; fixes</h3><div id="riskDetail"></div><div id="riskReportOut"></div></div>
+    </div>
+  </section>
+  <footer>
+    <span class="govern">⚿ Governed / internal — 0-day details role-gated; authorized tracking only.</span>
+    <span id="stamp">—</span>
+    <span>Source: aggregator /api/csg/dashboard/live (WS) · 15s push · 10s polling fallback</span>
+  </footer>
+</main>
+<script>
+const ZAR = n => 'R ' + Number(n||0).toLocaleString('en-ZA',{maximumFractionDigits:0});
+const USD = n => '$ ' + Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+const INT = n => Number(n||0).toLocaleString('en-ZA');
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const compactZAR = n => { n=Number(n||0); const a=Math.abs(n), s=n<0?'-':'+';
+  if(a>=1e9) return s+'R'+(a/1e9).toFixed(1)+'b';
+  if(a>=1e6) return s+'R'+(a/1e6).toFixed(1)+'m';
+  if(a>=1e3) return s+'R'+(a/1e3).toFixed(1)+'k';
+  return s+'R'+a; };
+const pct = (part,total) => Math.max(0,Math.min(100,(Number(part||0)/Math.max(1,Number(total||0)))*100));
+const ageText = ms => ms<2000 ? 'just now' : (ms<60000 ? Math.floor(ms/1000)+'s ago' : Math.floor(ms/60000)+'m ago');
+
+const COLORS = {csg:'#1a73e8',hacakesec:'#eab308', '0xsec':'#dc2626',caelum:'#0891b2',xploit:'#7c3aed',cayscan:'#059669',olympus:'#0ea5e9'};
+const ALIAS = {csg:'CaySoc Global · CAY',hacakesec:'HaCakeSec · HAC', '0xsec':'0xSec.za · XSE',caelum:'Caelum.za · CAE',xploit:'xploit.za · XPL',cayscan:'CayScaN · scans',olympus:'Olympus.za · OLY'};
+const LOGO = {csg:'caysoc.png',hacakesec:'hacakesec.jpg', '0xsec':'0xsec.png',caelum:'caelum.png',xploit:'xploit.png',cayscan:'cayscan.svg',olympus:'olympus.png'};
+const ORDER = ['csg','hacakesec','0xsec','caelum','xploit','cayscan','olympus'];
+
+let lastDataAt = Date.now();
+let baseline = null;
+let lastKpiSig = null, lastStreamSig = null, currentFx = 18.5;
+let ws = null, pollTimer = null, reconnectTimer = null, usingWs = false;
+
+function setConn(kind, text){
+  const el = document.getElementById('conn');
+  el.className = 'pill ' + (kind==='live'?'live':kind==='off'?'off':'warn');
+  el.textContent = text;
+}
+function delta(cur, prev, money){
+  const diff = Number(cur||0) - Number(prev||0);
+  if(!diff) return '<span class="delta flat" title="Change since this session started">±0</span>';
+  const up = diff>0;
+  return `<span class="delta ${up?'up':'down'}" title="Change since this session started">${up?'▲':'▼'} ${money?compactZAR(diff):INT(Math.abs(diff))}</span>`;
+}
+function mixBar(conf, pend, made){
+  const total = (conf||0)+(pend||0)+(made||0);
+  return `<div class="mixbar"><i style="width:${pct(conf,total)}%;background:var(--green)"></i><i style="width:${pct(pend,total)}%;background:var(--amber)"></i><i style="width:${pct(made,total)}%;background:var(--violet)"></i></div>`;
+}
+function updateStrip(d){
+  const m = String(d._mode||'');
+  document.getElementById('mode').textContent = 'mode ' + (m.split(';').map(x=>x.trim().replace('zerodays:','zd:').replace('paperclip:','pc:').replace('cayscan:','cs:')).join(' · ')||'—');
+  document.getElementById('mode').title = m||'—';
+  const level = key => m.includes(key+':ok')||m.includes(key+':real') ? 'ok' : m.includes(key+':error') ? 'off' : (m.includes(key+':degraded')||m.includes(key+':mock')) ? 'warn' : '';
+  for(const [id,key] of [['dot-zd','zerodays'],['dot-pc','paperclip'],['dot-cs','cayscan']]){
+    const el=document.getElementById(id), lv=level(key);
+    el.className = 'dot' + (lv?' '+lv:'');
+    el.title = key + ': ' + (lv||'pending');
+  }
+  document.getElementById('gov').hidden = !(d.zeroday&&d.zeroday.governed);
+}
+
+function render(d){
+  const ts = Date.parse(d.generated_at);
+  lastDataAt = Number.isFinite(ts) ? ts : Date.now();
+  const t=d.totals||{}, v=t.valuation||{}, c=t.zeroday_count||{}, a=t.agents||{}, tasks=t.tasks||{}, alerts=t.alerts||{};
+  if(!baseline) baseline = {confirmed:c.confirmed||0, zarConfirmed:v.zar_confirmed||0};
+  currentFx = Number((d.fx||{}).usd_zar) || currentFx;
+  document.getElementById('fx').textContent = 'USD/ZAR ' + Number((d.fx||{}).usd_zar||0).toFixed(2);
+  document.getElementById('fx').title = (d.fx||{}).source||'—';
+  document.getElementById('stamp').textContent = 'Data snapshot ' + (d.generated_at_sast||'—');
+  updateStrip(d);
+
+  const kpiSig = JSON.stringify([c,v,a,tasks,alerts,baseline]);
+  if(kpiSig !== lastKpiSig){ lastKpiSig = kpiSig;
+  document.getElementById('kpis').innerHTML = [
+    {label:'Confirmed 0-days', value:INT(c.confirmed), alt:`of ${INT(c.total)} total`, accent:'#22c55e', d:delta(c.confirmed,baseline.confirmed)},
+    {label:'Confirmed value', value:ZAR(v.zar_confirmed), alt:USD(v.usd_confirmed)+' secondary', accent:'#1a73e8', d:delta(v.zar_confirmed,baseline.zarConfirmed,true)},
+    {label:'Pipeline value', value:ZAR(v.zar_pipeline), alt:'pending + manufactured', accent:'#f59e0b'},
+    {cls:'mix', label:'0-day mix', value:mixBar(c.confirmed,c.pending,c.manufactured)+`<div class="mixn"><b>${INT(c.confirmed)}</b> conf · <b>${INT(c.pending)}</b> pend · <b>${INT(c.manufactured)}</b> made</div>`, alt:'governed register composition', accent:'#0ea5e9'},
+    {label:'Agents active', value:`${INT(a.active)} / ${INT(a.total)}`, alt:`${INT(tasks.in_progress)} in progress · ${INT(tasks.blocked)} blocked`, accent:'#7c3aed'},
+    {cls:'pulse', label:'Ops pulse · 24h', value:`<div class="sevs"><span class="sev crit">C ${INT(alerts.critical)}</span><span class="sev high">H ${INT(alerts.high)}</span><span class="sev med">M ${INT(alerts.medium)}</span></div>`, alt:`${INT(tasks.done_24h)} tasks closed · alerts open`, accent:'#ef4444'}
+  ].map(k=>`<div class="kpi ${k.cls||''}" style="--accent:${k.accent}"><div class="label">${k.label}${k.d||''}</div><div class="value">${k.value}</div><div class="alt">${k.alt}</div></div>`).join('');
+  }
+
+  const by = new Map((d.streams||[]).map(s=>[s.id,s]));
+  const streamSig = JSON.stringify(d.streams||[]);
+  if(streamSig !== lastStreamSig){ lastStreamSig = streamSig;
+  document.getElementById('streams').innerHTML = ORDER.map(id=>{
+    const s = by.get(id)||{};
+    const zc=s.zeroday_count||{}, sv=s.valuation||{}, ag=s.agents||{}, st=s.tasks||{}, al=s.alerts||{};
+    const color = s.brand_color||COLORS[id]||'#1a73e8';
+    const initials = (ALIAS[id]||id).split(' ')[0].slice(0,2).toUpperCase();
+    const tags = [];
+    if(s.status) tags.push(`<span class="tag ${s.status==='active'?'ok':''}">${esc(s.status)}</span>`);
+    if(s.paperclip_company) tags.push(`<span class="tag ok">${esc(s.paperclip_company.issuePrefix||'CAY')} linked</span>`);
+    if((st.blocked||0)>0) tags.push(`<span class="tag warn">${INT(st.blocked)} blocked</span>`);
+    if((al.high||0)>0) tags.push(`<span class="tag warn">${INT(al.high)} high</span>`);
+    return `<article class="card">
+      <div class="cardhead">
+        <span class="badge ${id==='cayscan'?'cs':''}" title="${esc(ALIAS[id]||id)}">
+          <img src="/logos/${LOGO[id]||'caysoc.png'}" alt="${esc(ALIAS[id]||id)} logo"
+               data-init="${esc(initials)}" data-color="${esc(color)}" />
+        </span>
+        <div class="ident"><h3>${esc(ALIAS[id]||id)}</h3><div class="alias">${esc(s.legacy_prefix||'')} · ${esc(id)}</div></div>
+        <span class="status ${s.status==='active'?'active':''}">${esc(s.status||'—')}</span>
+      </div>
+      <div class="valueblock">
+        <div><div class="label">Confirmed value</div><div class="big zar">${ZAR(sv.zar_confirmed)}</div><div class="usd">${USD(sv.usd_confirmed)} secondary</div></div>
+        <div><div class="label">0-day mix</div>${mixBar(zc.confirmed,zc.pending,0)}<div class="mixn">${INT(zc.confirmed)} conf · ${INT(zc.pending)} pipeline · ${INT(zc.total)} total</div></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span>Pipeline value</span><strong>${ZAR(sv.zar_pipeline)}</strong></div>
+        <div class="metric"><span>Agents</span><strong>${INT(ag.active)}/${INT(ag.total)}</strong></div>
+        <div class="metric"><span>In progress</span><strong>${INT(st.in_progress)}</strong></div>
+        <div class="metric"><span>Blocked</span><strong class="${(st.blocked||0)>0?'bad':''}">${INT(st.blocked)}</strong></div>
+      </div>
+      <div class="healthrow">${tags.join('')}</div>
+    </article>`;
+  }).join('');
+  }
+}
+
+async function load(){
+  try{
+    const r=await fetch('/api/csg/dashboard/overview',{cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    render(await r.json());
+    if(!usingWs) setConn('warn','● POLLING');
+  }catch(e){ setConn('off','● OFFSET'); }
+}
+function startPolling(){ if(!pollTimer) pollTimer=setInterval(load,10000); }
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+function scheduleReconnect(){ clearTimeout(reconnectTimer); reconnectTimer=setTimeout(connect,5000); }
+function connect(){
+  clearTimeout(reconnectTimer);
+  const proto = location.protocol==='https:'?'wss:':'ws:';
+  let sock;
+  try{ sock = new WebSocket(`${proto}//${location.host}/api/csg/dashboard/live`); }
+  catch(e){ setConn('warn','● RECONNECTING'); startPolling(); return scheduleReconnect(); }
+  ws=sock;
+  sock.onopen = ()=>{ usingWs=true; setConn('live','● LIVE'); stopPolling(); };
+  sock.onmessage = ev=>{
+    try{ const msg=JSON.parse(ev.data); if(msg.event==='hello'||msg.event==='tick') render(msg.payload); }catch(e){}
+  };
+  sock.onclose = ()=>{
+    if(ws===sock) ws=null;
+    usingWs=false; setConn('warn','● RECONNECTING'); startPolling(); scheduleReconnect();
+  };
+  sock.onerror = ()=>{ try{sock.close();}catch(e){} };
+}
+
+document.addEventListener('error', e=>{
+  const img=e.target;
+  if(img && img.tagName==='IMG' && img.dataset.init){
+    const s=document.createElement('span');
+    s.textContent=img.dataset.init; s.style.cssText='font-weight:800;color:'+img.dataset.color;
+    img.replaceWith(s);
+  }
+}, true);
+
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toLocaleString('sv-SE',{timeZone:'Africa/Johannesburg'})+' SAST';
+  document.getElementById('age').textContent = 'updated '+ageText(Date.now()-lastDataAt);
+},1000);
+
+/* ---------- governance module ---------- */
+const govTok = () => sessionStorage.getItem('csgGovToken') || '';
+const govHeaders = () => {
+  const h = { 'content-type': 'application/json' };
+  if (govTok()) h.authorization = 'Bearer ' + govTok();
+  return h;
+};
+async function govApi(p, opts = {}) {
+  const r = await fetch('/api/csg/gov' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+let govWriter = false;
+function govKpi(label, val, accent) {
+  return `<div class="govkpi" style="border-left:2px solid ${accent}"><span class="label">${label}</span><b>${val}</b></div>`;
+}
+async function loadGov() {
+  const token = govTok();
+  try {
+    const s = await govApi('/summary');
+    const f = s.findings || {}, sc = s.scopes || {}, au = s.audit || {}, stat = f.by_status || {};
+    document.getElementById('govKpis').innerHTML =
+      govKpi('Active scopes', INT(sc.by_status?.active || 0), '#22c55e') +
+      govKpi('Awaiting approval', INT((stat.intake || 0) + (sc.by_status?.draft || 0)), '#f59e0b') +
+      govKpi('Open findings', INT((f.total || 0) - (stat.disclosed || 0) - (stat.rejected || 0)), '#1a73e8') +
+      govKpi('Denied scope checks', INT(au.scope_denials), '#ef4444');
+  } catch (e) { /* summary unavailable */ }
+
+  const scopesEl = document.getElementById('govScopes');
+  const findingsEl = document.getElementById('govFindings');
+  if (!token) {
+    document.getElementById('govRole').textContent = 'public · summary only';
+    const hint = '<div class="govhint">Enter an operator/board token above to view governed detail and perform actions.</div>';
+    scopesEl.innerHTML = hint; findingsEl.innerHTML = hint;
+    document.getElementById('scopeForm').hidden = true;
+    document.getElementById('findingForm').hidden = true;
+    return;
+  }
+  try {
+    const who = await govApi('/whoami');
+    govWriter = who.role === 'board' || who.role === 'operator';
+    document.getElementById('govRole').textContent = who.role + ' · ' + who.name;
+    document.getElementById('scopeForm').hidden = !govWriter;
+    document.getElementById('findingForm').hidden = !govWriter;
+    const [sd, fd] = await Promise.all([govApi('/scopes'), govApi('/findings')]);
+    scopesEl.innerHTML = sd.scopes.length
+      ? `<table><thead><tr><th>Scope</th><th>Status</th><th>Reach</th><th>Action</th></tr></thead><tbody>` + sd.scopes.map(s => {
+          const st = s.effective_status || s.status;
+          const act = st === 'active'
+            ? `<button data-a="token" data-id="${s.id}">Token</button> <button data-a="revoke" data-id="${s.id}">Revoke</button>`
+            : s.status === 'draft'
+              ? `<button data-a="approve" data-id="${s.id}">Approve</button>`
+              : `<button data-a="revoke" data-id="${s.id}">Revoke</button>`;
+          return `<tr><td>${esc(s.name)}<span class="mini">${esc(s.owner)} · ${esc(s.purpose)}</span></td>
+            <td><span class="tag ${st === 'active' ? 'ok' : ''}">${esc(st)}</span></td>
+            <td>${INT(s.targets.length)} targets<span class="mini">${esc((s.tools || []).join(', '))}</span></td>
+            <td>${govWriter ? act : '—'}</td></tr>`;
+        }).join('') + '</tbody></table>'
+      : '<div class="govhint">No scopes yet.</div>';
+    findingsEl.innerHTML = fd.findings.length
+      ? `<table><thead><tr><th>ID</th><th>Sev</th><th>Status</th><th>Company / value</th><th>Ev</th></tr></thead><tbody>` + fd.findings.map(f => `<tr>
+          <td>${esc(f.identifier)}<span class="mini">${esc(f.title)}</span></td>
+          <td><span class="sevpill ${esc(f.severity)}">${esc(f.severity)}</span></td>
+          <td>${esc(f.status)}</td>
+          <td>${esc(f.company)}<span class="mini">${ZAR((f.valuation?.usdHigh || 0) * currentFx)} high-bound</span></td>
+          <td>${INT((f.evidence || []).length)}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No findings yet.</div>';
+  } catch (e) {
+    scopesEl.innerHTML = findingsEl.innerHTML = '<div class="govhint">Token rejected or governance API unavailable.</div>';
+    document.getElementById('govRole').textContent = 'token rejected';
+  }
+}
+
+document.getElementById('govRefresh').addEventListener('click', loadGov);
+document.getElementById('govToken').addEventListener('change', e => {
+  const v = e.target.value.trim();
+  if (v) sessionStorage.setItem('csgGovToken', v); else sessionStorage.removeItem('csgGovToken');
+  loadGov(); loadOps(); loadAssets(); loadCompliance(); loadCommunity(); loadRisk();
+});
+if (govTok()) document.getElementById('govToken').value = govTok();
+
+document.getElementById('govScopes').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const { a, id } = b.dataset;
+  try {
+    if (a === 'approve') await govApi(`/scopes/${id}/approve`, { method: 'POST', body: JSON.stringify({ by: 'dashboard operator', ticket: 'ui' }) });
+    if (a === 'revoke') await govApi(`/scopes/${id}/revoke`, { method: 'POST', body: '{}' });
+    if (a === 'token') {
+      const t = await govApi(`/scopes/${id}/token`, { method: 'POST', body: JSON.stringify({ ttlSec: 1800, maxUses: 10 }) });
+      if (t.token) window.prompt('Copy execution token (shown once):', t.token);
+    }
+    await loadGov();
+  } catch (err) { alert('Governance action failed: ' + err.message); }
+});
+
+document.getElementById('scCreate').addEventListener('click', async () => {
+  const v = id => document.getElementById(id).value.trim();
+  if (!v('scName') || !v('scTargets') || !v('scTools')) return alert('Name, targets and tools are required.');
+  try {
+    await govApi('/scopes', { method: 'POST', body: JSON.stringify({
+      name: v('scName'),
+      targets: v('scTargets').split(',').map(x => x.trim()).filter(Boolean),
+      tools: v('scTools').split(',').map(x => x.trim()).filter(Boolean),
+    }) });
+    ['scName', 'scTargets', 'scTools'].forEach(i => document.getElementById(i).value = '');
+    await loadGov();
+  } catch (err) { alert('Create scope failed: ' + err.message); }
+});
+
+document.getElementById('fdCreate').addEventListener('click', async () => {
+  const v = id => document.getElementById(id).value.trim();
+  if (!v('fdTitle')) return alert('Title is required.');
+  try {
+    await govApi('/findings', { method: 'POST', body: JSON.stringify({
+      title: v('fdTitle'), company: v('fdCompany') || 'CaySoc Global', severity: document.getElementById('fdSeverity').value, type: '0day',
+    }) });
+    document.getElementById('fdTitle').value = '';
+    await loadGov();
+  } catch (err) { alert('Create intake failed: ' + err.message); }
+});
+
+/* ---------- agent ops control room ---------- */
+async function opsApi(p, opts = {}) {
+  const r = await fetch('/api/csg/ops' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+let opsAgents = [];
+const opsName = id => opsAgents.find(a => a.id === id)?.name || String(id || '').slice(0, 8);
+
+async function loadOps() {
+  const canWrite = !!govTok();
+  try {
+    const [sum, ag, runs, alertData] = await Promise.all([
+      opsApi('/summary'), opsApi('/agents'), opsApi('/runs?limit=15'), opsApi('/alerts'),
+    ]);
+    const alerts = alertData.alerts || [];
+    opsAgents = ag.agents || [];
+    document.getElementById('opsRole').textContent = (canWrite ? 'authorized · ' : 'read-only · ') + (ag.company?.name || 'Paperclip');
+    const health = document.getElementById('opsHealth');
+    health.className = 'pill ' + (alerts.some(a => a.severity === 'critical') ? 'off' : alerts.length ? 'warn' : 'live');
+    health.textContent = '● OPS · ' + alerts.length + ' alert' + (alerts.length === 1 ? '' : 's');
+    const q = sum.quota_recovery || {};
+    const qel = document.getElementById('opsQuota');
+    qel.textContent = '● QUOTA ' + String(q.state || 'unknown').toUpperCase();
+    qel.className = 'pill ' + (q.state === 'exhausted' ? 'off' : ['available', 'recovered'].includes(q.state) ? 'live' : 'warn');
+    qel.title = (q.detail || '') + ' · checked ' + (q.checked_at || '—');
+
+    document.getElementById('opsKpis').innerHTML =
+      govKpi('Live runs', INT(sum.runs.live), '#7c3aed') +
+      govKpi('Agents active', INT(sum.agents.active) + ' / ' + INT(sum.agents.total) + ' · ' + INT(sum.agents.paused) + ' paused', '#22c55e') +
+      govKpi('24h success rate', INT(sum.runs.successRate) + '%', '#1a73e8') +
+      govKpi('Orphan processes', INT(sum.processes.orphans), sum.processes.orphans ? '#ef4444' : '#22c55e');
+
+    document.getElementById('opsAlerts').innerHTML = alerts.length
+      ? alerts.slice(0, 8).map(a => `<div class="alert ${esc(a.severity)}"><div><b>${esc(a.severity)} · ${esc(a.code)}</b><div>${esc(a.message)}</div></div></div>`).join('')
+      : '<div class="govhint">No alerts — all checks healthy.</div>';
+
+    document.getElementById('opsAgents').innerHTML = opsAgents.length
+      ? `<table><thead><tr><th>Agent</th><th>Status</th><th>Model</th><th>Runs</th><th>Success</th><th>Avg</th><th>Action</th></tr></thead><tbody>` + opsAgents.map(a => {
+          const paused = String(a.status).toLowerCase() === 'paused';
+          const acts = canWrite ? [
+            `<button data-a="${paused ? 'resume' : 'pause'}" data-id="${a.id}">${paused ? 'Resume' : 'Pause'}</button>`,
+            String(a.status).toLowerCase() === 'error' ? `<button data-a="clear" data-id="${a.id}">Clear</button>` : '',
+            `<button data-a="rotate" data-id="${a.id}">Rotate</button>`,
+          ].join(' ') : '—';
+          return `<tr><td>${esc(a.name)}<span class="mini">${INT(a.heartbeat.maxDailyRuns || 0)}/day · ${INT(a.heartbeat.intervalSec || 0)}s</span></td>
+            <td><span class="tag ${a.status === 'idle' || a.status === 'active' ? 'ok' : ''}">${esc(a.status)}</span></td>
+            <td><span class="mini" style="margin:0">${esc((a.model || '—').split('/').pop())}</span></td>
+            <td>${INT(a.runs24h)}</td><td>${INT(a.successRate)}%</td><td>${a.avgDurationSec === null ? '—' : INT(a.avgDurationSec) + 's'}</td>
+            <td>${acts}</td></tr>`;
+        }).join('') + '</tbody></table>'
+      : '<div class="govhint">No agents discovered.</div>';
+
+    document.getElementById('opsModels').innerHTML = (sum.models || []).length
+      ? `<table><thead><tr><th>Model</th><th>Runs</th><th>Success</th><th>Avg</th></tr></thead><tbody>` + sum.models.map(m => `<tr>
+          <td>${esc(m.model)}</td><td>${INT(m.runs)}</td><td>${INT(m.successRate)}%</td><td>${m.avgDurationSec === null ? '—' : INT(m.avgDurationSec) + 's'}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No model data.</div>';
+
+    document.getElementById('opsRuns').innerHTML = (runs.runs || []).length
+      ? `<h3>Recent runs</h3><table><thead><tr><th>Time</th><th>Agent</th><th>Status</th><th>Dur</th><th></th></tr></thead><tbody>` + runs.runs.map(r => `<tr>
+          <td>${esc(r.startedAt ? r.startedAt.slice(11, 19) : '—')}</td><td>${esc(opsName(r.agentId))}</td>
+          <td><span class="tag ${r.outcome === 'success' ? 'ok' : r.outcome === 'failure' ? 'warn' : ''}">${esc(r.status)}</span></td>
+          <td>${r.durationSec === null ? '—' : INT(r.durationSec) + 's'}</td>
+          <td>${canWrite ? `<button data-run="${r.id}">Trace</button>` : '—'}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No recent runs.</div>';
+  } catch (e) {
+    document.getElementById('opsHealth').textContent = '● UNAVAILABLE';
+    document.getElementById('opsRole').textContent = 'control room unavailable';
+    for (const id of ['opsKpis', 'opsAlerts', 'opsAgents', 'opsModels', 'opsRuns']) document.getElementById(id).innerHTML = '<div class="govhint">Could not load ops data (Paperclip unavailable).</div>';
+  }
+}
+
+document.getElementById('opsRefresh').addEventListener('click', () => { loadGov(); loadOps(); });
+document.getElementById('opsAgents').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const { a, id } = b.dataset;
+  const agent = opsAgents.find(x => x.id === id);
+  try {
+    if (['pause', 'resume', 'clear'].includes(a)) await opsApi(`/agents/${id}/${a}`, { method: 'POST', body: '{}' });
+    if (a === 'rotate') {
+      const to = window.prompt('Target model for ' + (agent?.name || id), agent?.model || '');
+      if (to && to.trim()) await opsApi('/model/rotate', { method: 'POST', body: JSON.stringify({ from: agent?.model, to: to.trim() }) });
+    }
+    await loadOps();
+  } catch (err) { alert('Ops action failed: ' + err.message); }
+});
+document.getElementById('opsRuns').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-run]'); if (!b) return;
+  try {
+    const t = await opsApi('/runs/' + b.dataset.run + '/trace');
+    document.getElementById('opsTrace').innerHTML = '<div class="tracebox">' + esc(JSON.stringify(t, null, 2).slice(0, 14000)) + '</div>';
+  } catch (err) { document.getElementById('opsTrace').innerHTML = '<div class="govhint">Trace unavailable.</div>'; }
+});
+
+/* ---------- shadow asset monitor ---------- */
+async function assetApi(p, opts = {}) {
+  const r = await fetch('/api/csg/assets' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) { let msg = r.status; try { msg = (await r.json()).error || msg; } catch {} throw new Error(msg); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+async function loadAssets() {
+  const hint = '<div class="govhint">Enter a valid operator/board token above to load the asset monitor.</div>';
+  if (!govTok()) {
+    document.getElementById('assetRole').textContent = 'token required';
+    document.getElementById('assetHealth').textContent = '● OFFLINE';
+    for (const id of ['assetKpis', 'assetTable', 'assetChanges']) document.getElementById(id).innerHTML = hint;
+    document.getElementById('seedForm').hidden = true;
+    return;
+  }
+  try {
+    const [sum, data, changes] = await Promise.all([
+      assetApi('/summary'), assetApi('/assets'), assetApi('/changes?limit=10'),
+    ]);
+    document.getElementById('assetRole').textContent = 'authorized · passive inventory';
+    const health = document.getElementById('assetHealth');
+    health.className = 'pill ' + (sum.last_run ? 'live' : 'warn');
+    health.textContent = sum.last_run ? '● LAST PASS ' + sum.last_run.at.slice(11, 19) + 'Z' : '● NO PASS YET';
+    document.getElementById('assetKpis').innerHTML =
+      govKpi('Tracked assets', INT(sum.tracked), '#1a73e8') +
+      govKpi('New in 7 days', INT(sum.new_7d), '#22c55e') +
+      govKpi('High / critical', INT((sum.by_severity.high || 0) + (sum.by_severity.critical || 0)), '#ef4444') +
+      govKpi('Cert expiring ≤30d', INT(sum.expiring_30d), '#f59e0b');
+    document.getElementById('assetTable').innerHTML = data.assets.length
+      ? `<table><thead><tr><th>Host</th><th>Owner</th><th>IP</th><th>Exposure</th><th>Cert</th></tr></thead><tbody>` + data.assets.map(a => `<tr>
+          <td>${esc(a.host)}<span class="mini">${esc(a.status)} · ${esc((a.exposure.reasons || []).join(', '))}</span></td>
+          <td>${esc(a.owner)}</td><td>${esc(a.ip || '—')}</td>
+          <td><span class="sevpill ${esc(a.exposure.severity)}">${INT(a.exposure.score)} ${esc(a.exposure.severity)}</span></td>
+          <td>${a.certDays === null ? '—' : INT(a.certDays) + 'd'}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No assets tracked. Add a seed host below.</div>';
+    document.getElementById('assetChanges').innerHTML = changes.changes.length
+      ? '<table><thead><tr><th>Pass</th><th>Added</th><th>Removed</th><th>Changed</th></tr></thead><tbody>' + changes.changes.map(c => `<tr>
+          <td>${esc(c.at.slice(0, 19).replace('T', ' '))}</td>
+          <td>${esc((c.added || []).join(', ') || '—')}</td>
+          <td>${esc((c.removed || []).join(', ') || '—')}</td>
+          <td>${esc((c.changed || []).map(x => x.host).join(', ') || '—')}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No discovery passes with changes yet.</div>';
+    document.getElementById('seedForm').hidden = false;
+  } catch (e) {
+    document.getElementById('assetHealth').textContent = '● UNAVAILABLE';
+    for (const id of ['assetKpis', 'assetTable', 'assetChanges']) document.getElementById(id).innerHTML = '<div class="govhint">Asset monitor unavailable (token rejected).</div>';
+  }
+}
+
+document.getElementById('assetDiscover').addEventListener('click', async () => {
+  const b = document.getElementById('assetDiscover');
+  try {
+    b.disabled = true; b.textContent = 'Discovering…';
+    const r = await assetApi('/discover', { method: 'POST', body: '{}' });
+    document.getElementById('assetReportOut').innerHTML = '<div class="govhint">Pass complete: ' + INT(r.hosts) + ' host(s), ' + INT(r.diff.added.length) + ' new, ' + INT(r.diff.changed.length) + ' changed.</div>';
+    await loadAssets();
+  } catch (e) { alert('Discovery failed: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Discover now'; }
+});
+document.getElementById('assetReport').addEventListener('click', async () => {
+  try {
+    const text = await assetApi('/report');
+    document.getElementById('assetReportOut').innerHTML = '<div class="tracebox">' + esc(text) + '</div>';
+  } catch (e) { alert('Report unavailable: ' + e.message); }
+});
+document.getElementById('seedAdd').addEventListener('click', async () => {
+  const host = document.getElementById('seedHost').value.trim();
+  if (!host) return alert('Enter a hostname.');
+  try {
+    await assetApi('/seeds', { method: 'POST', body: JSON.stringify({ host, owner: document.getElementById('seedOwner').value.trim() || 'unassigned' }) });
+    document.getElementById('seedHost').value = '';
+    await loadAssets();
+  } catch (e) { alert('Add host failed: ' + e.message); }
+});
+
+/* ---------- compliance evidence collector ---------- */
+async function compApi(p, opts = {}) {
+  const r = await fetch('/api/csg/compliance' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) { let msg = r.status; try { msg = (await r.json()).error || msg; } catch {} throw new Error(msg); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+let compControls = [];
+async function loadCompliance() {
+  const hint = '<div class="govhint">Enter a valid operator/board token above to load the compliance register.</div>';
+  if (!govTok()) {
+    document.getElementById('compRole').textContent = 'token required';
+    document.getElementById('compHealth').textContent = '● OFFLINE';
+    for (const id of ['compKpis', 'compControls', 'compGaps']) document.getElementById(id).innerHTML = hint;
+    document.getElementById('compForm').hidden = true;
+    return;
+  }
+  try {
+    const [sum, ctrl, gapData] = await Promise.all([compApi('/summary'), compApi('/controls'), compApi('/gaps')]);
+    compControls = ctrl.controls || [];
+    document.getElementById('compRole').textContent = 'authorized · POPIA / ISO 27001';
+    const h = document.getElementById('compHealth');
+    h.className = 'pill ' + (sum.by_status.missing || sum.by_status.stale ? 'warn' : 'live');
+    h.textContent = '● ' + INT(sum.coverage_pct) + '% COVERAGE';
+    document.getElementById('compKpis').innerHTML =
+      govKpi('Coverage', INT(sum.coverage_pct) + '%', '#22c55e') +
+      govKpi('Controls current', INT(sum.by_status.current) + ' / ' + INT(sum.controls), '#1a73e8') +
+      govKpi('Stale', INT(sum.by_status.stale), '#f59e0b') +
+      govKpi('Missing', INT(sum.by_status.missing), '#ef4444');
+    document.getElementById('compControls').innerHTML = compControls.length
+      ? `<table><thead><tr><th>ID</th><th>Control</th><th>Ref</th><th>Owner</th><th>Status</th></tr></thead><tbody>` + compControls.map(c => `<tr>
+          <td>${esc(c.id)}</td>
+          <td>${esc(c.title)}<span class="mini">${esc(c.domain)} · every ${INT(c.frequencyDays)}d · ${INT(c.evidenceCount)} record(s)</span></td>
+          <td><span class="mini" style="margin:0">${esc(c.reference)}</span></td>
+          <td>${esc(c.owner)}</td>
+          <td><span class="sevpill ${esc(c.status)}">${esc(c.status)}${c.daysOverdue ? ' +' + INT(c.daysOverdue) + 'd' : ''}</span></td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No controls in the register.</div>';
+    document.getElementById('compGaps').innerHTML = gapData.gaps.length
+      ? '<table><thead><tr><th>Control</th><th>Gap</th><th>Owner</th></tr></thead><tbody>' + gapData.gaps.map(g => `<tr>
+          <td>${esc(g.id)}</td><td>${esc(g.title)}<span class="mini">${esc(g.status)}${g.daysOverdue ? ' · ' + INT(g.daysOverdue) + 'd overdue' : ''}</span></td>
+          <td>${esc(g.owner)}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No outstanding gaps — all controls current.</div>';
+    const sel = document.getElementById('evControl');
+    const prev = sel.value;
+    sel.innerHTML = compControls.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.title)}</option>`).join('');
+    if (prev && compControls.some(c => c.id === prev)) sel.value = prev;
+    document.getElementById('compForm').hidden = false;
+  } catch (e) {
+    document.getElementById('compHealth').textContent = '● UNAVAILABLE';
+    for (const id of ['compKpis', 'compControls', 'compGaps']) document.getElementById(id).innerHTML = '<div class="govhint">Compliance register unavailable (token rejected).</div>';
+  }
+}
+
+document.getElementById('evAdd').addEventListener('click', async () => {
+  const title = document.getElementById('evTitle').value.trim();
+  const content = document.getElementById('evContent').value.trim();
+  if (!title || !content) return alert('Title and evidence text are required.');
+  try {
+    await compApi('/evidence', { method: 'POST', body: JSON.stringify({
+      controlId: document.getElementById('evControl').value, title, content, source: 'dashboard', type: 'document',
+    }) });
+    document.getElementById('evTitle').value = '';
+    document.getElementById('evContent').value = '';
+    await loadCompliance();
+  } catch (e) { alert('Evidence add failed: ' + e.message); }
+});
+document.getElementById('compExport').addEventListener('click', async () => {
+  try {
+    const text = await compApi('/export');
+    document.getElementById('compExportOut').innerHTML = '<div class="tracebox">' + esc(text) + '</div>';
+  } catch (e) { alert('Export unavailable: ' + e.message); }
+});
+
+/* ---------- community threat pulse ---------- */
+async function commApi(p, opts = {}) {
+  const r = await fetch('/api/csg/community' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) { let msg = r.status; try { msg = (await r.json()).error || msg; } catch {} throw new Error(msg); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+async function loadCommunity() {
+  try {
+    const s = await commApi('/summary');
+    document.getElementById('commHealth').textContent = '● PUBLIC SAFE · ' + INT(s.signals.verified) + ' VERIFIED';
+    document.getElementById('commKpis').innerHTML =
+      govKpi('Verified signals', INT(s.signals.verified), '#22c55e') +
+      govKpi('Pending review', INT(s.signals.pending_review), '#f59e0b') +
+      govKpi('New in 7 days', INT(s.trend.new_7d), '#1a73e8') +
+      govKpi('Community reports', INT(s.signals.reports), '#7c3aed');
+    const cats = Object.entries(s.by_category || {}).sort((a, b) => b[1] - a[1]);
+    const sev = s.by_severity || {}, prov = s.by_province || {};
+    document.getElementById('commPublic').innerHTML =
+      `<div class="govhint">${esc(s.safety_note)}</div>` +
+      (cats.length ? `<table><thead><tr><th>Verified category</th><th>Count</th></tr></thead><tbody>` + cats.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${INT(v)}</td></tr>`).join('') + '</tbody></table>' : '<div class="govhint">No verified signals published yet.</div>') +
+      `<div class="healthrow" style="margin-top:10px"><span class="tag">high ${INT(sev.high || 0)}</span><span class="tag">medium ${INT(sev.medium || 0)}</span><span class="tag">low ${INT(sev.low || 0)}</span>${Object.entries(prov).map(([k, v]) => `<span class="tag ok">${esc(k)} ${INT(v)}</span>`).join('')}</div>`;
+    document.getElementById('commForm').hidden = false;
+  } catch (e) {
+    document.getElementById('commHealth').textContent = '● UNAVAILABLE';
+    document.getElementById('commKpis').innerHTML = '<div class="govhint">Community feed unavailable.</div>';
+  }
+  const el = document.getElementById('commInternal');
+  if (!govTok()) {
+    document.getElementById('commRole').textContent = 'public aggregates · verified only';
+    el.innerHTML = '<div class="govhint">Enter a token above for the moderation queue.</div>';
+    return;
+  }
+  try {
+    const data = await commApi('/indicators');
+    document.getElementById('commRole').textContent = 'operator · moderation queue';
+    el.innerHTML = data.indicators.length
+      ? '<table><thead><tr><th>ID</th><th>Redacted</th><th>Category</th><th>Status</th><th>Action</th></tr></thead><tbody>' + data.indicators.map(i => `<tr>
+          <td>${esc(i.id)}<span class="mini">${esc(i.type)}</span></td>
+          <td>${esc(i.redactedValue)}<span class="mini">${INT(i.reports)} report(s)</span></td>
+          <td>${esc(i.category)}</td>
+          <td><span class="sevpill ${i.verified ? 'current' : 'stale'}">${i.verified ? 'verified' : 'pending'}</span></td>
+          <td>${i.verified ? '' : `<button data-a="verify" data-id="${i.id}">Verify</button> `}<button data-a="remove" data-id="${i.id}">Remove</button></td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No submitted signals yet.</div>';
+  } catch (e) { el.innerHTML = '<div class="govhint">Moderation queue unavailable.</div>'; }
+}
+
+document.getElementById('sigAdd').addEventListener('click', async () => {
+  if (!document.getElementById('sigConsent').checked) return alert('Opt-in consent is required to submit a signal.');
+  const value = document.getElementById('sigValue').value.trim();
+  if (!value) return alert('Enter a suspicious URL, email or pattern.');
+  try {
+    const r = await commApi('/indicators', { method: 'POST', body: JSON.stringify({
+      type: document.getElementById('sigType').value,
+      value,
+      province: document.getElementById('sigProvince').value.trim(),
+      consent: true,
+    }) });
+    document.getElementById('commSubmitOut').innerHTML = '<div class="govhint">' + (r.duplicate ? 'Already reported — thanks. Report count: ' + INT(r.reports) + '.' : 'Received for moderation (' + esc(r.id) + '). Nothing is published until verified.') + '</div>';
+    document.getElementById('sigValue').value = '';
+    document.getElementById('sigProvince').value = '';
+    document.getElementById('sigConsent').checked = false;
+    await loadCommunity();
+  } catch (e) { alert('Submission failed: ' + e.message); }
+});
+document.getElementById('commReport').addEventListener('click', async () => {
+  try {
+    const text = await commApi('/report');
+    document.getElementById('commReportOut').innerHTML = '<div class="tracebox">' + esc(text) + '</div>';
+  } catch (e) { alert('Report unavailable: ' + e.message); }
+});
+document.getElementById('commInternal').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  try {
+    if (b.dataset.a === 'verify') await commApi('/indicators/' + b.dataset.id + '/verify', { method: 'POST', body: '{}' });
+    if (b.dataset.a === 'remove') await commApi('/indicators/' + b.dataset.id, { method: 'DELETE' });
+    await loadCommunity();
+  } catch (err) { alert('Moderation action failed: ' + err.message); }
+});
+
+/* ---------- SME cyber risk pulse ---------- */
+async function riskApi(p, opts = {}) {
+  const r = await fetch('/api/csg/risk' + p, { ...opts, headers: govHeaders(), cache: 'no-store' });
+  if (!r.ok) { let msg = r.status; try { msg = (await r.json()).error || msg; } catch {} throw new Error(msg); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+let riskClients = [], riskSelected = null;
+const gradePill = g => `<span class="grade ${esc(g || 'A')}">${esc(g || 'A')}</span>`;
+
+async function loadRiskDetail(id) {
+  const el = document.getElementById('riskDetail');
+  try {
+    const d = await riskApi('/clients/' + id);
+    const s = d.latest;
+    if (!s) { el.innerHTML = '<div class="govhint">No assessment yet — click Assess on this client.</div>'; return; }
+    el.innerHTML = `<div class="healthrow" style="margin-bottom:8px">${gradePill(s.grade)} <strong>${INT(s.score)}/100</strong>
+        <span class="tag">${esc(s.clientName || d.client.name)}</span>
+        <span class="tag warn">${ZAR(s.zarExposure)} governed exposure</span>
+        <span class="tag">${esc((s.at || '').slice(0, 19).replace('T', ' '))} SAST</span></div>` +
+      (s.factors?.length ? '<table><thead><tr><th>Priority</th><th>Finding</th><th>Action</th></tr></thead><tbody>' + s.factors.slice(0, 12).map(f => `<tr>
+        <td><span class="sevpill ${esc(f.severity)}">${esc(f.severity)}</span></td>
+        <td>${esc(f.detail)}${f.host ? `<span class="mini">${esc(f.host)}</span>` : ''}</td>
+        <td>${esc(f.action)}</td></tr>`).join('') + '</tbody></table>' : '<div class="govhint">No findings from passive checks.</div>');
+  } catch (e) { el.innerHTML = '<div class="govhint">Could not load assessment.</div>'; }
+}
+
+async function loadRisk() {
+  const hint = '<div class="govhint">Enter a valid operator/board token above to load the risk portfolio.</div>';
+  if (!govTok()) {
+    document.getElementById('riskRole').textContent = 'token required';
+    document.getElementById('riskHealth').textContent = '● OFFLINE';
+    for (const id of ['riskKpis', 'riskClients', 'riskDetail']) document.getElementById(id).innerHTML = hint;
+    document.getElementById('riskForm').hidden = true;
+    return;
+  }
+  try {
+    const [sum, data] = await Promise.all([riskApi('/summary'), riskApi('/clients')]);
+    riskClients = data.clients || [];
+    document.getElementById('riskRole').textContent = 'authorized · passive portfolio';
+    const h = document.getElementById('riskHealth');
+    h.className = 'pill ' + (sum.highRisk ? 'warn' : 'live');
+    h.textContent = '● ' + INT(sum.clients) + ' CLIENTS · ' + INT(sum.highRisk) + ' HIGH RISK';
+    document.getElementById('riskKpis').innerHTML =
+      govKpi('Clients', INT(sum.clients), '#1a73e8') +
+      govKpi('Avg risk score', INT(sum.avgScore) + '/100', '#f59e0b') +
+      govKpi('High risk', INT(sum.highRisk), '#ef4444') +
+      govKpi('ZAR exposure', ZAR(sum.zarExposure), '#22c55e');
+    document.getElementById('riskClients').innerHTML = riskClients.length
+      ? `<table><thead><tr><th>Client</th><th>Pack</th><th>Owner</th><th>Domain</th><th>Action</th></tr></thead><tbody>` + riskClients.map(c => `<tr>
+          <td>${esc(c.name)}<span class="mini">${esc(c.id)} · ${ZAR(c.monthlyFeeZar)}/m</span></td>
+          <td>${esc(c.pack)}</td><td>${esc(c.owner)}</td><td>${esc(c.domain || '—')}</td>
+          <td><button data-a="view" data-id="${c.id}">View</button> <button data-a="assess" data-id="${c.id}">Assess</button> <button data-a="report" data-id="${c.id}">Report</button></td></tr>`).join('') + '</tbody></table>'
+      : '<div class="govhint">No clients yet. Add one below.</div>';
+    document.getElementById('riskForm').hidden = false;
+    if (!riskSelected && riskClients.length) riskSelected = riskClients[0].id;
+    if (riskSelected) loadRiskDetail(riskSelected);
+  } catch (e) {
+    document.getElementById('riskHealth').textContent = '● UNAVAILABLE';
+    for (const id of ['riskKpis', 'riskClients', 'riskDetail']) document.getElementById(id).innerHTML = '<div class="govhint">Risk portfolio unavailable (token rejected).</div>';
+  }
+}
+
+document.getElementById('riskRefresh').addEventListener('click', () => { loadRisk(); });
+document.getElementById('riskClients').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const { a, id } = b.dataset;
+  riskSelected = id;
+  try {
+    if (a === 'assess') { await riskApi('/clients/' + id + '/assess', { method: 'POST', body: '{}' }); await loadRisk(); }
+    if (a === 'report') {
+      const text = await riskApi('/clients/' + id + '/report');
+      document.getElementById('riskReportOut').innerHTML = '<div class="tracebox">' + esc(text) + '</div>';
+    }
+    if (a === 'view') await loadRiskDetail(id);
+  } catch (err) { alert('Risk action failed: ' + err.message); }
+});
+document.getElementById('rcAdd').addEventListener('click', async () => {
+  const v = x => document.getElementById(x).value.trim();
+  if (!v('rcName')) return alert('Client name is required.');
+  try {
+    const c = await riskApi('/clients', { method: 'POST', body: JSON.stringify({
+      name: v('rcName'), domain: v('rcDomain'), owner: v('rcOwner'),
+      hosts: v('rcHosts').split(',').map(x => x.trim()).filter(Boolean), pack: 'standard', monthlyFeeZar: 2500,
+    }) });
+    riskSelected = c.id;
+    ['rcName', 'rcDomain', 'rcHosts', 'rcOwner'].forEach(x => document.getElementById(x).value = '');
+    await loadRisk();
+  } catch (e) { alert('Add client failed: ' + e.message); }
+});
+
+connect(); load(); loadGov(); loadOps(); loadAssets(); loadCompliance(); loadCommunity(); loadRisk();
+</script>
+</body>
+</html>

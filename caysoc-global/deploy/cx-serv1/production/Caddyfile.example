@@ -1,0 +1,5 @@
+# Enable only when DNS/TLS is ready. Restrict access (VPN/Tailscale/ACL) for internal ops.
+# paperclip.caysoc.internal {
+#   reverse_proxy paperclip:3100
+#   tls internal # or real certs
+# }

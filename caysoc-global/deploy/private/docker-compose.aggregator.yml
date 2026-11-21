@@ -1,0 +1,34 @@
+name: caysoc-dashboard
+
+services:
+  aggregator:
+    image: node:24-alpine
+    container_name: caysoc-aggregator
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NODE_ENV: production
+      PORT: "4310"
+      BIND: 127.0.0.1
+      ZERODAY_ROOT: /data/0days
+      FX_USD_ZAR: "16.28"
+      FX_SOURCE: "0days-index (1 USD=R 16.28)"
+      PAPERCLIP_BASE_URL: "http://127.0.0.1:3100"
+      PAPERCLIP_ENABLED: "1"
+      GOV_DATA_DIR: "/data/governance"
+    env_file:
+      - /home/cx/caysoc/governance.env
+    network_mode: host
+    volumes:
+      - /home/cx/caysoc/aggregator:/app
+      - /home/cx/caysoc/0days:/data/0days:ro
+      - /home/cx/caysoc/governance-data:/data/governance
+      - /proc:/host/proc:ro
+    command: >
+      sh -lc "npm ci --omit=dev --no-audit --no-fund >/dev/null 2>&1 || npm install --omit=dev --no-audit --no-fund >/dev/null 2>&1; exec node src/server.js"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4310/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

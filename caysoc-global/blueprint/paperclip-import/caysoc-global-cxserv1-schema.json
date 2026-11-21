@@ -1,0 +1,96 @@
+{
+  "inspected_at_utc": "2026-11-08T16:56:42.858900+00:00",
+  "source_host": "cx-serv1 (192.168.0.4), /home/cx/caysoc (Paperclip monorepo clone, API 127.0.0.1:3100 not responding at inspection time)",
+  "important_findings": [
+    "createCompanySchema (packages/shared/src/validators/company.ts) accepts only name, description, budgetMonthlyCents, attachmentMaxBytes, defaultResponsibleUserId. issuePrefix/brandColor/requireBoardApprovalForNewAgents/feedback settings are NOT in create; apply via PATCH company and/or PATCH /companies/:id/branding as supported by your running server build.",
+    "createAgentSchema requires name + adapterType; supports role,title,icon,reportsTo(uuid),capabilities,desiredSkills,adapterConfig,instructionsBundle,runtimeConfig,defaultEnvironmentId,budgetMonthlyCents,permissions,metadata. reportsTo must reference an existing agent UUID (two-pass import or resolve after creates).",
+    "Routines do NOT store cronExpression on the routine itself. Create routine (POST /companies/:companyId/routines), then create schedule trigger (POST /routines/:id/triggers) with kind='schedule', cronExpression, timezone.",
+    "Goals: createGoalSchema takes title,description,level,status,parentId,ownerAgentId.",
+    "Company portability/import endpoints exist (POST /api/companies/import, company-scoped imports/exports). Portability format differs from this manifest; use this manifest for explicit API-aligned operations or adapt to portability export format after inspecting company-portability service.",
+    "dashboard_data.json shows CaySoc Global may already exist (id a1b2c3d4-0001-4000-8000-000000000001, issuePrefix CAY, brandColor #1a73e8, logoAssetId 5d8cbd2d-...). VERIFY on live instance before creating a duplicate; prefer update/merge."
+  ],
+  "endpoints_observed": {
+    "company_create": "POST /api/companies  body=createCompanySchema",
+    "company_update": "PATCH /api/companies/:companyId  body=updateCompanySchema (partial; includes status,brandColor,logoAssetId,requireBoardApprovalForNewAgents,budget fields etc.)",
+    "company_branding": "PATCH /api/companies/:companyId/branding  body=updateCompanyBrandingSchema (name,description,brandColor,logoAssetId; at least one)",
+    "company_import_portability": "POST /api/companies/import + company-scoped /:companyId/imports/* (verify payload format)",
+    "agent_create": "POST /api/companies/:companyId/agents  body=createAgentSchema",
+    "agent_hire": "POST /api/companies/:companyId/agent-hires  body=createAgentHireSchema",
+    "routine_create": "POST /api/companies/:companyId/routines  body=createRoutineSchema",
+    "routine_trigger_create": "POST /api/routines/:id/triggers  body=createRoutineTriggerSchema (schedule: kind,cronExpression,timezone,enabled,label)",
+    "goal_create": "POST /api/companies/:companyId/goals  body=createGoalSchema"
+  },
+  "field_mappings": {
+    "company.create": {
+      "name": "string*",
+      "description": "string|null",
+      "budgetMonthlyCents": "int>=0 default 0",
+      "attachmentMaxBytes": "int optional (max per constants)",
+      "defaultResponsibleUserId": "string|null optional"
+    },
+    "company.update": {
+      "...create partial": "...",
+      "status": "enum COMPANY_STATUSES",
+      "spentMonthlyCents": "int",
+      "requireBoardApprovalForNewAgents": "bool",
+      "feedbackDataSharingEnabled": "bool",
+      "brandColor": "#RRGGBB|null",
+      "logoAssetId": "uuid|null",
+      "attachmentMaxBytes": "int"
+    },
+    "agent.create": {
+      "name": "string*",
+      "adapterType": "adapter enum*",
+      "role": "AGENT_ROLES default general",
+      "title": "string|null",
+      "icon": "AGENT_ICON_NAMES|null",
+      "reportsTo": "uuid|null (existing agent)",
+      "capabilities": "string|null",
+      "desiredSkills": "array optional",
+      "adapterConfig": "object default {}",
+      "instructionsBundle": "{entryFile?, files{path:content}} optional",
+      "runtimeConfig": "object default {}",
+      "defaultEnvironmentId": "uuid|null",
+      "budgetMonthlyCents": "int default 0",
+      "permissions": "{canCreateAgents?,canCreateSkills?,trustPreset?,authorizationPolicy?}",
+      "metadata": "object|null"
+    },
+    "routine.create": {
+      "title": "string* max200",
+      "description": "string|null",
+      "projectId": "uuid|null",
+      "folderId": "uuid|null",
+      "goalId": "uuid|null",
+      "parentIssueId": "uuid|null",
+      "assigneeAgentId": "uuid|null",
+      "priority": "ISSUE_PRIORITIES default medium",
+      "status": "ROUTINE_STATUSES default active",
+      "concurrencyPolicy": "default coalesce_if_active",
+      "catchUpPolicy": "default skip_missed",
+      "variables": "array default []",
+      "env": "EnvConfig|null"
+    },
+    "routine.trigger.schedule": {
+      "kind": "schedule",
+      "cronExpression": "string*",
+      "timezone": "string default UTC (use Africa/Johannesburg for CSG)",
+      "enabled": "bool default true",
+      "label": "string|null"
+    },
+    "goal.create": {
+      "title": "string*",
+      "description": "string|null",
+      "level": "GOAL_LEVELS default task",
+      "status": "GOAL_STATUSES default planned",
+      "parentId": "uuid|null",
+      "ownerAgentId": "uuid|null"
+    }
+  },
+  "notes": [
+    "Agent reportsTo/assignee/owner relations require UUIDs; create in dependency order (CEO -> directors -> managers -> staff) and map symbolic keys to returned IDs.",
+    "Adapter types/config must match adapters installed on the target Paperclip build (e.g. hermes_local/process/http/codex_local/etc.). Verify available adapters before create.",
+    "Routines use Africa/Johannesburg per CaySoc policy; create schedule triggers explicitly.",
+    "Never import secrets/tokens in committed files; set adapterConfig env bindings and company secrets via approved secret mechanisms after import.",
+    "Ibhubesi-labeled agents must have least-privilege tools and require scope+human approval for offensive/intrusive actions."
+  ]
+}

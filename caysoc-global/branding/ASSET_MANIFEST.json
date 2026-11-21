@@ -1,0 +1,93 @@
+{
+  "brand": "CaySoc Global",
+  "identity": "Proudly South African cyber intelligence, defence, and authorized security operations.",
+  "timezone": "Africa/Johannesburg",
+  "currency": "ZAR",
+  "locale": "en_ZA",
+  "source_asset_locations": [
+    {
+      "path": "D:\\caysoc\\logo - badge",
+      "purpose": "Primary CaySoc/legacy badge exploration (jpg/png)"
+    },
+    {
+      "path": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026",
+      "purpose": "Paperclip-era unified logos (CaySoc/0xSec/Caelum/xploit/Olympus/HaCakeSec)"
+    },
+    {
+      "path": "D:\\Projects\\0xsec.za\\Logos",
+      "purpose": "Per-company logo folders and legacy brand assets"
+    }
+  ],
+  "recommended_primary_marks": [
+    {
+      "file": "D:\\caysoc\\logo - badge\\caysocglobal.jpg",
+      "use": "Primary CaySoc Global candidate"
+    },
+    {
+      "file": "D:\\caysoc\\logo - badge\\caysocglobal1.jpg",
+      "use": "Variant"
+    },
+    {
+      "file": "D:\\caysoc\\logo - badge\\caysocglobal2.jpg",
+      "use": "Variant"
+    },
+    {
+      "file": "D:\\caysoc\\logo - badge\\caysocglobal3.jpg",
+      "use": "Variant"
+    },
+    {
+      "file": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\CaySoc.v5.png",
+      "use": "Paperclip-optimized candidate"
+    },
+    {
+      "file": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\CaySoc.v0.3.png",
+      "use": "Variant"
+    }
+  ],
+  "legacy_marks_preserved": [
+    {
+      "name": "0xSec.za",
+      "examples": [
+        "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\0xsec.za.v0.3.1.png",
+        "D:\\caysoc\\logo - badge\\0xsec1.jpg"
+      ]
+    },
+    {
+      "name": "HaCakeSec",
+      "examples": [
+        "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\HaCakeSec.0.10.png"
+      ]
+    },
+    {
+      "name": "Caelum.za",
+      "examples": [
+        "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\Caelum.za.v0.1.1.png"
+      ]
+    },
+    {
+      "name": "xploit.za/Xploit",
+      "examples": [
+        "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\xploit.za.v0.2.1.png",
+        "D:\\caysoc\\logo - badge\\Xploit1.jpg"
+      ]
+    },
+    {
+      "name": "Olympus.za",
+      "examples": [
+        "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\Olympus.za.v1.2.1.png",
+        "D:\\caysoc\\logo - badge\\olympus1.jpg"
+      ]
+    },
+    {
+      "name": "CaySoc legacy",
+      "examples": [
+        "D:\\caysoc\\logo - badge\\caysoc1.jpg",
+        "D:\\caysoc\\logo - badge\\caysoc3.png"
+      ]
+    }
+  ],
+  "sa_design_guidance": {
+    "tone": "Professional, trustworthy, Ubuntu-minded; not state-affiliated.",
+    "rule": "Do not imply affiliation with SA state institutions."
+  }
+}

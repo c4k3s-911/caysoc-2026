@@ -1,0 +1,303 @@
+{
+  "generated_at": "2026-11-08T12:00:00Z",
+  "generated_at_sast": "2026-11-08 14:00:00 SAST",
+  "fx": {
+    "usd_zar": 18.5,
+    "as_of": "2026-11-08",
+    "source": "manual"
+  },
+  "totals": {
+    "streams": 6,
+    "zeroday_count": {
+      "total": 12,
+      "confirmed": 1,
+      "pending": 8,
+      "manufactured": 3
+    },
+    "valuation": {
+      "zar_confirmed": 9235000,
+      "zar_pipeline": 1850000,
+      "usd_confirmed": 500000
+    },
+    "agents": {
+      "active": 11,
+      "total": 18
+    },
+    "tasks": {
+      "in_progress": 7,
+      "blocked": 1,
+      "done_24h": 14
+    },
+    "alerts": {
+      "critical": 0,
+      "high": 2,
+      "medium": 5
+    }
+  },
+  "streams": [
+    {
+      "id": "csg",
+      "name": "CaySoc Global",
+      "legacy_prefix": "CSG",
+      "brand_color": "#1a73e8",
+      "logo": {
+        "primary": "D:\\caysoc\\logo - badge\\caysocglobal.jpg"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 12,
+        "confirmed": 1,
+        "pending": 8
+      },
+      "valuation": {
+        "zar_confirmed": 9235000,
+        "zar_pipeline": 1850000,
+        "usd_confirmed": 500000
+      },
+      "agents": {
+        "active": 11,
+        "total": 18
+      },
+      "tasks": {
+        "in_progress": 7,
+        "blocked": 1
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 2
+      },
+      "routines": {
+        "ok": 7,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 1200,
+        "cap_zar": 5000
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/csg"
+      }
+    },
+    {
+      "id": "hacakesec",
+      "name": "HaCakeSec Legacy",
+      "legacy_prefix": "HACAAA",
+      "brand_color": "#0f766e",
+      "logo": {
+        "primary": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\HaCakeSec.0.10.png"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 2,
+        "confirmed": 0,
+        "pending": 2
+      },
+      "valuation": {
+        "zar_confirmed": 0,
+        "zar_pipeline": 350000,
+        "usd_confirmed": 0
+      },
+      "agents": {
+        "active": 3,
+        "total": 7
+      },
+      "tasks": {
+        "in_progress": 2,
+        "blocked": 0
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 0
+      },
+      "routines": {
+        "ok": 4,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 690,
+        "cap_zar": 1500
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/hacakesec"
+      }
+    },
+    {
+      "id": "0xsec",
+      "name": "0xSec.za",
+      "legacy_prefix": "XSE",
+      "brand_color": "#dc2626",
+      "logo": {
+        "primary": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\0xsec.za.v0.3.1.png"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 5,
+        "confirmed": 1,
+        "pending": 3
+      },
+      "valuation": {
+        "zar_confirmed": 9235000,
+        "zar_pipeline": 600000,
+        "usd_confirmed": 500000
+      },
+      "agents": {
+        "active": 4,
+        "total": 6
+      },
+      "tasks": {
+        "in_progress": 2,
+        "blocked": 1
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 1
+      },
+      "routines": {
+        "ok": 5,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 100,
+        "cap_zar": 500
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/0xsec"
+      }
+    },
+    {
+      "id": "caelum",
+      "name": "Caelum.za",
+      "legacy_prefix": "CAE",
+      "brand_color": "#0891b2",
+      "logo": {
+        "primary": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\Caelum.za.v0.1.1.png"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 1,
+        "confirmed": 0,
+        "pending": 1
+      },
+      "valuation": {
+        "zar_confirmed": 0,
+        "zar_pipeline": 120000,
+        "usd_confirmed": 0
+      },
+      "agents": {
+        "active": 1,
+        "total": 2
+      },
+      "tasks": {
+        "in_progress": 1,
+        "blocked": 0
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 0
+      },
+      "routines": {
+        "ok": 2,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 80,
+        "cap_zar": 300
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/caelum"
+      }
+    },
+    {
+      "id": "xploit",
+      "name": "xploit.za",
+      "legacy_prefix": "XPL",
+      "brand_color": "#7c3aed",
+      "logo": {
+        "primary": "D:\\Projects\\0xsec.za\\Logos\\paperclip_logos_2026\\xploit.za.v0.2.1.png"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 3,
+        "confirmed": 0,
+        "pending": 2
+      },
+      "valuation": {
+        "zar_confirmed": 0,
+        "zar_pipeline": 700000,
+        "usd_confirmed": 0
+      },
+      "agents": {
+        "active": 2,
+        "total": 2
+      },
+      "tasks": {
+        "in_progress": 1,
+        "blocked": 0
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 1
+      },
+      "routines": {
+        "ok": 2,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 150,
+        "cap_zar": 500
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/xploit"
+      }
+    },
+    {
+      "id": "cayscan",
+      "name": "CayScaN Platform",
+      "legacy_prefix": "CSCAN",
+      "brand_color": "#334155",
+      "logo": {
+        "primary": "D:\\caysoc\\logo - badge\\caysoc3.png"
+      },
+      "status": "active",
+      "zeroday_count": {
+        "total": 1,
+        "confirmed": 0,
+        "pending": 0
+      },
+      "valuation": {
+        "zar_confirmed": 0,
+        "zar_pipeline": 80000,
+        "usd_confirmed": 0
+      },
+      "agents": {
+        "active": 1,
+        "total": 1
+      },
+      "tasks": {
+        "in_progress": 1,
+        "blocked": 0
+      },
+      "alerts": {
+        "critical": 0,
+        "high": 0
+      },
+      "routines": {
+        "ok": 3,
+        "failed": 0
+      },
+      "budget": {
+        "spent_zar": 180,
+        "cap_zar": 700
+      },
+      "last_updated": "2026-11-08T12:00:00Z",
+      "links": {
+        "detail": "/csg/dashboard/stream/cayscan"
+      }
+    }
+  ]
+}

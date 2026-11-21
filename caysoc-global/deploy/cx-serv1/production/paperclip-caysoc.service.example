@@ -1,0 +1,15 @@
+[Unit]
+Description=CaySoc Global Paperclip (compose)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/cx/caysoc/paperclip
+ExecStart=/usr/bin/docker compose -f /home/cx/caysoc/paperclip/docker-compose.cx-serv1.yml up -d
+ExecStop=/usr/bin/docker compose -f /home/cx/caysoc/paperclip/docker-compose.cx-serv1.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

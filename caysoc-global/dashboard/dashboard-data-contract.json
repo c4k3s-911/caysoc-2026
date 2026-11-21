@@ -1,0 +1,96 @@
+{
+  "$schema": "caysoc-global/dashboard-data-contract/v1",
+  "overview": {
+    "generated_at": "ISO-8601Z",
+    "generated_at_sast": "string",
+    "fx": {
+      "usd_zar": "number",
+      "as_of": "YYYY-MM-DD",
+      "source": "string"
+    },
+    "totals": {
+      "streams": "int",
+      "zeroday_count": {
+        "total": "int",
+        "confirmed": "int",
+        "pending": "int",
+        "manufactured": "int"
+      },
+      "valuation": {
+        "zar_confirmed": "number",
+        "zar_pipeline": "number",
+        "usd_confirmed": "number"
+      },
+      "agents": {
+        "active": "int",
+        "total": "int"
+      },
+      "tasks": {
+        "in_progress": "int",
+        "blocked": "int",
+        "done_24h": "int"
+      },
+      "alerts": {
+        "critical": "int",
+        "high": "int",
+        "medium": "int"
+      }
+    },
+    "streams": "array<stream>"
+  },
+  "stream": {
+    "id": "csg|hacakesec|0xsec|caelum|xploit|cayscan|olympus",
+    "name": "string",
+    "legacy_prefix": "string",
+    "brand_color": "#hex",
+    "logo": {
+      "primary": "path/url",
+      "fallback": "path/url"
+    },
+    "status": "active|degraded|paused",
+    "zeroday_count": {
+      "total": "int",
+      "confirmed": "int",
+      "pending": "int"
+    },
+    "valuation": {
+      "zar_confirmed": "number",
+      "zar_pipeline": "number",
+      "usd_confirmed": "number"
+    },
+    "agents": {
+      "active": "int",
+      "total": "int"
+    },
+    "tasks": {
+      "in_progress": "int",
+      "blocked": "int"
+    },
+    "alerts": {
+      "critical": "int",
+      "high": "int"
+    },
+    "routines": {
+      "ok": "int",
+      "failed": "int"
+    },
+    "budget": {
+      "spent_zar": "number",
+      "cap_zar": "number"
+    },
+    "last_updated": "ISO-8601Z",
+    "links": {
+      "detail": "url",
+      "paperclip": "url"
+    }
+  },
+  "realtime_events": [
+    "zeroday.updated",
+    "alert.created",
+    "task.changed",
+    "agent.heartbeat",
+    "routine.completed",
+    "budget.updated",
+    "governance.approval_pending"
+  ]
+}

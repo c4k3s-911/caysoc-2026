@@ -1,0 +1,48 @@
+name: caysoc-paperclip
+
+services:
+  paperclip:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: caysoc/paperclip:2026-11
+    container_name: paperclip
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      TZ: Africa/Johannesburg
+      NODE_ENV: production
+      HOST: 127.0.0.1
+      PAPERCLIP_BIND: loopback
+      PORT: "3100"
+      SERVE_UI: "true"
+      PAPERCLIP_SWARM: "1"
+      PAPERCLIP_HOME: /paperclip
+      PAPERCLIP_INSTANCE_ID: default
+      PAPERCLIP_CONFIG: /paperclip/instances/default/config.json
+      PAPERCLIP_DEPLOYMENT_MODE: local_trusted
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: private
+      PAPERCLIP_DB_BACKUP_ENABLED: "true"
+      PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES: "60"
+      PAPERCLIP_DB_BACKUP_RETENTION_DAYS: "7"
+      USER_UID: "1000"
+      USER_GID: "1000"
+      OPENCODE_ALLOW_ALL_MODELS: "true"
+      GEMINI_SANDBOX: "false"
+    # Host networking: the server binds 127.0.0.1:3100 directly on the host.
+    # Nothing is published to the LAN; reach it through an SSH tunnel.
+    network_mode: host
+    volumes:
+      - caysoc_paperclip_data:/paperclip
+      - ./docker-entrypoint.fixed.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3100/api/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    mem_limit: 3g
+
+volumes:
+  caysoc_paperclip_data:
+    name: caysoc_paperclip_data
