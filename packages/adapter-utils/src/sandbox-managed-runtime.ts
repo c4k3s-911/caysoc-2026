@@ -54,11 +54,61 @@ export interface SandboxRemoteExecutionSpec {
   apiKey: string | null;
 }
 
+/**
+ * Remote paths handed to an asset's `provision.extractCommand`. All are POSIX
+ * paths inside the sandbox: `assetTarPath` is the uploaded asset tarball,
+ * `assetDir` is where the asset should be materialized, and `runtimeRootDir`
+ * is the directory any `stageFiles` were written into.
+ */
+export interface SandboxManagedRuntimeAssetProvisionContext {
+  assetTarPath: string;
+  assetDir: string;
+  runtimeRootDir: string;
+}
+
+/**
+ * Per-asset inbound provisioning contribution. The core is adapter-agnostic:
+ * an asset that supplies neither `stageFiles` nor `extractCommand` is extracted
+ * with a plain `tar -xf`. An adapter that needs custom provisioning (e.g. a
+ * credential merge) supplies helper files via `stageFiles` and the shell
+ * command that consumes them via `extractCommand`.
+ */
+export interface SandboxManagedRuntimeAssetProvision {
+  /**
+   * Extra files written into `runtimeRootDir` (alongside the asset tar) before
+   * the extract command runs — typically helper scripts the extract command
+   * invokes. Contents may be raw bytes or a UTF-8 string.
+   */
+  stageFiles?: { name: string; contents: Buffer | string }[];
+  /**
+   * Builds the shell command that materializes the uploaded asset tar into
+   * `assetDir`. Defaults to a plain `tar -xf` extraction when omitted.
+   */
+  extractCommand?: (ctx: SandboxManagedRuntimeAssetProvisionContext) => string;
+}
+
+/**
+ * Context passed to an asset's `restore` contribution during teardown.
+ * `assetDir` is the asset's directory inside the sandbox and `readFile` reads
+ * a file back from the sandbox as raw bytes.
+ */
+export interface SandboxManagedRuntimeAssetRestoreContext {
+  assetDir: string;
+  readFile: (remotePath: string) => Promise<Buffer>;
+}
+
 export interface SandboxManagedRuntimeAsset {
   key: string;
   localDir: string;
   followSymlinks?: boolean;
   exclude?: string[];
+  /** Optional inbound provisioning contribution (staged files + extract command). */
+  provision?: SandboxManagedRuntimeAssetProvision;
+  /**
+   * Optional teardown/outbound contribution, invoked once per asset during
+   * `restoreWorkspace`. Defaults to a no-op when omitted.
+   */
+  restore?: (ctx: SandboxManagedRuntimeAssetRestoreContext) => Promise<void>;
 }
 
 /**
@@ -108,6 +158,16 @@ function asNumber(value: unknown): number {
 
 function shellQuote(value: string) {
   return `'${value.replace(/'/g, `'\"'\"'`)}'`;
+}
+
+function buildDefaultExtractRuntimeAssetCommand(input: {
+  remoteAssetDir: string;
+  remoteAssetTar: string;
+}): string {
+  return `rm -rf ${shellQuote(input.remoteAssetDir)} && ` +
+    `mkdir -p ${shellQuote(input.remoteAssetDir)} && ` +
+    `tar -xf ${shellQuote(input.remoteAssetTar)} -C ${shellQuote(input.remoteAssetDir)} && ` +
+    `rm -f ${shellQuote(input.remoteAssetTar)}`;
 }
 
 export function parseSandboxRemoteExecutionSpec(value: unknown): SandboxRemoteExecutionSpec | null {
@@ -323,6 +383,25 @@ function tarExcludeFlags(exclude: string[] | undefined): string {
   return ["._*", ...(exclude ?? [])].map((entry) => `--exclude ${shellQuote(entry)}`).join(" ");
 }
 
+function createRemoteTarballFromDirectoryCommand(input: {
+  remoteDir: string;
+  archivePath: string;
+  exclude?: string[];
+}): string {
+  // Match the local archive path: name top-level entries explicitly so tar
+  // does not include a "." self-entry that it later tries to chmod/utime.
+  return [
+    `mkdir -p ${shellQuote(path.posix.dirname(input.archivePath))}`,
+    `cd ${shellQuote(input.remoteDir)}`,
+    "set -- *",
+    `if [ "$#" -eq 1 ] && [ "$1" = "*" ] && [ ! -e "$1" ] && [ ! -L "$1" ]; then set --; fi`,
+    `for entry in .[!.]* ..?*; do [ -e "$entry" ] || [ -L "$entry" ] || continue; set -- "$@" "$entry"; done`,
+    `if [ "$#" -eq 0 ]; then ` +
+      `dd if=/dev/zero of=${shellQuote(input.archivePath)} bs=1024 count=1; ` +
+      `else tar -cf ${shellQuote(input.archivePath)} ${tarExcludeFlags(input.exclude)} -- "$@"; fi`,
+  ].join(" && ");
+}
+
 async function emitRuntimeStatus(
   sink: RuntimeStatusSink | undefined,
   phase: RuntimeStatusPhase,
@@ -363,10 +442,28 @@ function makeTransferProgress(
   phase: RuntimeProgressPhase,
   direction: RuntimeProgressDirection,
   label?: string,
-): { options: SandboxTransferProgressOptions | undefined; finish: () => Promise<void> } {
-  if (!sink) return { options: undefined, finish: async () => {} };
+  runtimeStatus?: {
+    sink: RuntimeStatusSink | undefined;
+    phase: RuntimeStatusPhase;
+  },
+): {
+  options: SandboxTransferProgressOptions | undefined;
+  finish: (doneBytes?: number, totalBytes?: number | null) => Promise<void>;
+} {
+  if (!sink && !runtimeStatus?.sink) {
+    return { options: undefined, finish: async () => {} };
+  }
   const reporter = createRuntimeProgressReporter({
-    sink,
+    sink: async (line) => {
+      await sink?.(line);
+      if (runtimeStatus?.sink) {
+        await emitRuntimeStatus(
+          runtimeStatus.sink,
+          runtimeStatus.phase,
+          line.replace(/^\[paperclip\]\s*/, "").trim(),
+        );
+      }
+    },
     phase,
     direction,
     target: "sandbox",
@@ -378,8 +475,8 @@ function makeTransferProgress(
         await reporter.report(transferredBytes, totalBytes);
       },
     },
-    finish: async () => {
-      await reporter.complete();
+    finish: async (doneBytes, totalBytes) => {
+      await reporter.complete(doneBytes, totalBytes);
     },
   };
 }
@@ -441,9 +538,15 @@ export async function prepareSandboxManagedRuntime(input: {
         const gitTarBytes = await fs.readFile(gitTarPath);
         const remoteGitTar = path.posix.join(runtimeRootDir, "git-workspace-upload.tar");
         await input.client.makeDir(runtimeRootDir);
-        const gitUpload = makeTransferProgress(input.onProgress, "Syncing", "to", "git history");
+        const gitUpload = makeTransferProgress(
+          input.onProgress,
+          "Syncing",
+          "to",
+          "git history",
+          { sink: input.onRuntimeProgress, phase: "git_sync" },
+        );
         await input.client.writeFile(remoteGitTar, toArrayBuffer(gitTarBytes), gitUpload.options);
-        await gitUpload.finish();
+        await gitUpload.finish(gitTarBytes.byteLength, gitTarBytes.byteLength);
         await input.client.run(
           `sh -c ${shellQuote(
             `mkdir -p ${shellQuote(workspaceRemoteDir)} && ` +
@@ -475,13 +578,19 @@ export async function prepareSandboxManagedRuntime(input: {
     const workspaceTarBytes = await fs.readFile(workspaceTarPath);
     const remoteWorkspaceTar = path.posix.join(runtimeRootDir, "workspace-upload.tar");
     await input.client.makeDir(runtimeRootDir);
-    const workspaceUpload = makeTransferProgress(input.onProgress, "Syncing", "to", "workspace");
+    const workspaceUpload = makeTransferProgress(
+      input.onProgress,
+      "Syncing",
+      "to",
+      "workspace",
+      { sink: input.onRuntimeProgress, phase: "config_sync" },
+    );
     await input.client.writeFile(
       remoteWorkspaceTar,
       toArrayBuffer(workspaceTarBytes),
       workspaceUpload.options,
     );
-    await workspaceUpload.finish();
+    await workspaceUpload.finish(workspaceTarBytes.byteLength, workspaceTarBytes.byteLength);
     const extractWorkspaceTarCommand = gitSnapshot
       ? `mkdir -p ${shellQuote(workspaceRemoteDir)} && ` +
         `tar -xf ${shellQuote(remoteWorkspaceTar)} -C ${shellQuote(workspaceRemoteDir)} && ` +
@@ -515,16 +624,35 @@ export async function prepareSandboxManagedRuntime(input: {
       const assetTarBytes = await fs.readFile(assetTarPath);
       const remoteAssetDir = path.posix.join(runtimeRootDir, asset.key);
       const remoteAssetTar = path.posix.join(runtimeRootDir, `${asset.key}-upload.tar`);
-      const assetUpload = makeTransferProgress(input.onProgress, "Syncing", "to", asset.key);
+      const assetUpload = makeTransferProgress(
+        input.onProgress,
+        "Syncing",
+        "to",
+        asset.key,
+        { sink: input.onRuntimeProgress, phase: "config_sync" },
+      );
       await input.client.writeFile(remoteAssetTar, toArrayBuffer(assetTarBytes), assetUpload.options);
-      await assetUpload.finish();
+      await assetUpload.finish(assetTarBytes.byteLength, assetTarBytes.byteLength);
+      for (const stageFile of asset.provision?.stageFiles ?? []) {
+        const stageBytes = typeof stageFile.contents === "string"
+          ? Buffer.from(stageFile.contents)
+          : stageFile.contents;
+        const safeName = stageFile.name;
+        if (/[\\/]|\.\.(\.|$)/.test(safeName) || safeName === "..") {
+          throw new Error(`provision stageFile.name must be a simple basename, got: ${safeName}`);
+        }
+        await input.client.writeFile(
+          path.posix.join(runtimeRootDir, safeName),
+          toArrayBuffer(stageBytes),
+        );
+      }
+      const extractCommand = asset.provision?.extractCommand?.({
+        assetTarPath: remoteAssetTar,
+        assetDir: remoteAssetDir,
+        runtimeRootDir,
+      }) ?? buildDefaultExtractRuntimeAssetCommand({ remoteAssetDir, remoteAssetTar });
       await input.client.run(
-        `sh -c ${shellQuote(
-          `rm -rf ${shellQuote(remoteAssetDir)} && ` +
-            `mkdir -p ${shellQuote(remoteAssetDir)} && ` +
-            `tar -xf ${shellQuote(remoteAssetTar)} -C ${shellQuote(remoteAssetDir)} && ` +
-            `rm -f ${shellQuote(remoteAssetTar)}`,
-        )}`,
+        `sh -c ${shellQuote(extractCommand)}`,
         { timeoutMs: input.spec.timeoutMs },
       );
     }
@@ -563,9 +691,16 @@ export async function prepareSandboxManagedRuntime(input: {
               }))}`,
               { timeoutMs: input.spec.timeoutMs },
             );
-            const gitExport = makeTransferProgress(restoreSink, "Exporting git history", "from");
+            const gitExport = makeTransferProgress(
+              restoreSink,
+              "Exporting git history",
+              "from",
+              undefined,
+              { sink: input.onRuntimeProgress, phase: "export" },
+            );
             const bundleBytes = await input.client.readFile(remoteGitBundle, gitExport.options);
-            await gitExport.finish();
+            const bundleBuffer = toBuffer(bundleBytes);
+            await gitExport.finish(bundleBuffer.byteLength, bundleBuffer.byteLength);
             await input.client.remove(remoteGitBundle).catch(() => undefined);
             remoteWorkspaceStatus = await input.client.readFile(remoteWorkspaceStatusPath)
               .then((bytes) => toBuffer(bytes).toString("utf8").trim())
@@ -573,7 +708,7 @@ export async function prepareSandboxManagedRuntime(input: {
             remoteWorkspaceStatus = remoteWorkspaceStatus === "clean" ? "clean" : "dirty";
             await input.client.remove(remoteWorkspaceStatusPath).catch(() => undefined);
             const bundlePath = path.join(tempDir, "git-delta.bundle");
-            await fs.writeFile(bundlePath, toBuffer(bundleBytes));
+            await fs.writeFile(bundlePath, bundleBuffer);
             importedHead = await fetchGitBundleIntoLocalRef({
               localDir: input.workspaceLocalDir,
               bundlePath,
@@ -586,20 +721,27 @@ export async function prepareSandboxManagedRuntime(input: {
           const remoteWorkspaceTar = path.posix.join(runtimeRootDir, "workspace-download.tar");
           await emitRuntimeStatus(input.onRuntimeProgress, "restore", "Restoring workspace from sandbox");
           await input.client.run(
-            `sh -c ${shellQuote(
-              `mkdir -p ${shellQuote(runtimeRootDir)} && ` +
-                `tar -cf ${shellQuote(remoteWorkspaceTar)} -C ${shellQuote(workspaceRemoteDir)} ` +
-                `${tarExcludeFlags(restoreExclude)} .`,
-            )}`,
+            `sh -c ${shellQuote(createRemoteTarballFromDirectoryCommand({
+              remoteDir: workspaceRemoteDir,
+              archivePath: remoteWorkspaceTar,
+              exclude: restoreExclude,
+            }))}`,
             { timeoutMs: input.spec.timeoutMs },
           );
-          const workspaceRestore = makeTransferProgress(restoreSink, "Restoring", "from", "workspace");
+          const workspaceRestore = makeTransferProgress(
+            restoreSink,
+            "Restoring",
+            "from",
+            "workspace",
+            { sink: input.onRuntimeProgress, phase: "restore" },
+          );
           const archiveBytes = await input.client.readFile(remoteWorkspaceTar, workspaceRestore.options);
-          await workspaceRestore.finish();
+          const archiveBuffer = toBuffer(archiveBytes);
+          await workspaceRestore.finish(archiveBuffer.byteLength, archiveBuffer.byteLength);
           await input.client.remove(remoteWorkspaceTar).catch(() => undefined);
           const localArchivePath = path.join(tempDir, "workspace.tar");
           const extractedDir = path.join(tempDir, "workspace");
-          await fs.writeFile(localArchivePath, toBuffer(archiveBytes));
+          await fs.writeFile(localArchivePath, archiveBuffer);
           await extractTarballToDirectory({
             archivePath: localArchivePath,
             localDir: extractedDir,
@@ -626,6 +768,17 @@ export async function prepareSandboxManagedRuntime(input: {
                 }
               : undefined,
           });
+
+          // Per-asset teardown/outbound contributions. Generic: an asset with
+          // no `restore` is a no-op. The contribution reads back from the
+          // sandbox (e.g. a refreshed credential) via the provided `readFile`.
+          for (const asset of input.assets ?? []) {
+            if (!asset.restore) continue;
+            await asset.restore({
+              assetDir: path.posix.join(runtimeRootDir, asset.key),
+              readFile: async (remotePath) => toBuffer(await input.client.readFile(remotePath)),
+            });
+          }
         } finally {
           await emitRuntimeStatus(input.onRuntimeProgress, "finalize", "Finalizing sandbox workspace");
           if (importedRef) {
