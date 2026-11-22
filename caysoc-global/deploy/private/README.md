@@ -401,7 +401,16 @@ Incident notes from that rebuild:
   (`paperclip-20261122-070414.sql.gz`) was used to undo a partial failed migration.
 - After a host reboot, both the system and snap Docker daemons start; the containers live in
   snap's daemon, reachable via `DOCKER_HOST=unix:///run/docker.sock` (the system daemon owns
-  `/var/run/docker.sock`). Use that variable when managing containers post-reboot.
+  `/var/run/docker.sock`). Use that variable when managing containers post-reboot. The quota
+  watcher was updated to export it and to probe with `--format json`.
+
+## Autonomy restored (2026-11-22)
+
+OpenCode's free quota reset; the watcher probed successfully and resumed the four core agents.
+Agent runs were timing out at 240 s while performing real tool work, so the core agents now use
+`timeoutSec: 600, graceSec: 60` (operators: 240 s for the paused seven). Self-referential
+"operational status / dashboard health check" issues were closed. A verification heartbeat
+(`2963e3f2…`) completed with status `succeeded`, no error, and no new board noise.
 
 ## Secrets / governance
 
