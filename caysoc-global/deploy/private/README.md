@@ -385,12 +385,23 @@ by agents with `{ target, scopeToken, depth }`.
 Local source: `integration/torbot/` (Dockerfile, runner.py, docker-compose.yml). Nothing is
 scanned unless an approved scope exists; denied checks are logged and do not consume token uses.
 
-Deployment note: the `recon:torbot` change in `server/src/mcp-swarm/server.ts` is committed,
-but the currently running Paperclip container was patched at runtime (`docker cp` of the
-compiled `dist/mcp-swarm/server.js` plus `docker restart`) because a full image rebuild
-stalled on global npm installs. A future clean image rebuild will include it permanently.
+Deployment note (resolved): Paperclip was cleanly rebuilt from base commit `98cac98` with only
+the `recon:torbot` swarm change applied, producing image `caysoc/paperclip:2026-11`
+(`b2015c60b68f`). The compiled tool is now part of the image — no runtime patch is needed.
 The Paperclip compose file also gained `/home/cx/caysoc/governance.env` as an `env_file`, so
 the swarm handler can read the governance operator token.
+
+Incident notes from that rebuild:
+- Merging the fork (`c4k3s-911/caysoc-2026`) pulled in 275 newer upstream commits whose
+  migrations are incompatible with this instance's DB. The host image must be built from the
+  older base above; do not rebuild from the fork-merged `master` without a DB migration plan.
+- The embedded DB was initialized before drizzle migration tracking. Its journal was repaired
+  by inserting SHA-256 hashes of all migration SQL files from the base commit into
+  `drizzle.__drizzle_migrations`; Paperclip now starts cleanly. A pre-incident backup
+  (`paperclip-20261122-070414.sql.gz`) was used to undo a partial failed migration.
+- After a host reboot, both the system and snap Docker daemons start; the containers live in
+  snap's daemon, reachable via `DOCKER_HOST=unix:///run/docker.sock` (the system daemon owns
+  `/var/run/docker.sock`). Use that variable when managing containers post-reboot.
 
 ## Secrets / governance
 
