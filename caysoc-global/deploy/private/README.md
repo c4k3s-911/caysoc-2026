@@ -407,10 +407,21 @@ Incident notes from that rebuild:
 ## Autonomy restored (2026-11-22)
 
 OpenCode's free quota reset; the watcher probed successfully and resumed the four core agents.
-Agent runs were timing out at 240 s while performing real tool work, so the core agents now use
-`timeoutSec: 600, graceSec: 60` (operators: 240 s for the paused seven). Self-referential
-"operational status / dashboard health check" issues were closed. A verification heartbeat
-(`2963e3f2…`) completed with status `succeeded`, no error, and no new board noise.
+Self-referential "operational status / dashboard health check" issues were closed. A verification
+heartbeat (`2963e3f2…`) completed with status `succeeded`, no error, and no new board noise.
+
+**Second exhaustion (same day):** after roughly two hours of four-agent heartbeats, the free
+quota was exhausted again. Serializing runs and raising `timeoutSec` to 600 did not help — the
+direct model probe returned `AI_APICallError: Free usage limit reached` while runs timed out.
+Changing the adapter fingerprint also caused "Skipping saved session resume … effective run
+configuration fingerprint metadata is missing", forcing full-context runs and burning quota
+faster, so the core agents were reverted to `timeoutSec: 240, graceSec: 30` to restore session
+resume. The fleet was paused again (11/11 paused, 0 errors) and the watcher re-armed to `armed`.
+
+Conclusion: four always-on agents are not sustainable on the OpenCode free tier — it lasts about
+two hours before throttling. Real continuous autonomy requires an OpenCode Go subscription or a
+paid provider API key. Until then the watcher will resume the fleet after each quota reset and the
+fleet will be paused again when it is exhausted.
 
 ## Secrets / governance
 
