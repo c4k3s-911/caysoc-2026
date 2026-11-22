@@ -436,5 +436,9 @@ watcher: `crontab -l | grep -v quota-recovery.sh | crontab -`.
 
 - `sudo` on this host does not accept the SSH password, so services run under Docker rather than
   systemd. Docker group membership is used instead.
-- **Unrelated exposure:** `freellmapi-freellmapi-1` listens on `0.0.0.0:3001`. That predates this
-  deployment and is not part of CaySoc; it should be bound to loopback or firewalled.
+- **Unrelated exposure (fixed):** `freellmapi-freellmapi-1` previously listened on `0.0.0.0:3001`.
+  Its compose file already defaulted to `${HOST_BIND:-127.0.0.1}`, but
+  `~/Downloads/freellmapi/.env` overrode it with `HOST_BIND=0.0.0.0`. Set back to `127.0.0.1`
+  and recreated the container (named volume preserved). All CaySoc-relevant ports — 3001,
+  3100, 4310, 6080, 9090, 9091 — now bind loopback only. A backup of the old env is at
+  `.env.before-loopback`.
