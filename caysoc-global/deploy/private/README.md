@@ -385,6 +385,13 @@ by agents with `{ target, scopeToken, depth }`.
 Local source: `integration/torbot/` (Dockerfile, runner.py, docker-compose.yml). Nothing is
 scanned unless an approved scope exists; denied checks are logged and do not consume token uses.
 
+Deployment note: the `recon:torbot` change in `server/src/mcp-swarm/server.ts` is committed,
+but the currently running Paperclip container was patched at runtime (`docker cp` of the
+compiled `dist/mcp-swarm/server.js` plus `docker restart`) because a full image rebuild
+stalled on global npm installs. A future clean image rebuild will include it permanently.
+The Paperclip compose file also gained `/home/cx/caysoc/governance.env` as an `env_file`, so
+the swarm handler can read the governance operator token.
+
 ## Secrets / governance
 
 - `.env` is mode `600`, holds `BETTER_AUTH_SECRET` generated with `openssl rand -hex 32`.
