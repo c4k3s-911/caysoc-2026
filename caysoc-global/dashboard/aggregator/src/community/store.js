@@ -45,7 +45,7 @@ export function addIndicator(input, fingerprint = 'anonymous') {
     id: 'SIG-' + crypto.randomBytes(6).toString('hex').toUpperCase(),
     fingerprintHash: key,
     internalValue: value,
-    type: ['phishing_domain', 'scam_template', 'lookalike', 'exposed_service', 'sms_pattern', 'email_pattern'].includes(input.type) ? input.type : 'scam_template',
+    type: ['phishing_domain', 'scam_template', 'lookalike', 'exposed_service', 'sms_pattern', 'email_pattern', 'darkweb_mention'].includes(input.type) ? input.type : 'scam_template',
     category: String(input.category || 'other').slice(0, 80),
     provinces: input.province ? [String(input.province).slice(0, 60)] : [],
     severity: ['low', 'medium', 'high'].includes(input.severity) ? input.severity : 'medium',

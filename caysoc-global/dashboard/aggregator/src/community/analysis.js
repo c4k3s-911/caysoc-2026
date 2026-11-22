@@ -60,6 +60,7 @@ export function publicSummary(db) {
       verified: visible.length,
       pending_review: all.length - visible.length,
       reports: all.reduce((n, i) => n + (i.reports || 0), 0),
+      darkweb_signals: all.filter(i => i.type === 'darkweb_mention').length,
     },
     by_type: tally(visible, 'type'),
     by_category: tally(visible, 'category'),

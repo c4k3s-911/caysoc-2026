@@ -367,6 +367,24 @@ fleet does not need manual intervention when it resets:
 Current state: `exhausted` (verified by manual run). Removing the cron entry disables the
 watcher: `crontab -l | grep -v quota-recovery.sh | crontab -`.
 
+## TorBot dark-web brand monitor (folded into #9 / #6)
+
+A pinned TorBot checkout (commit `a7000496a02adeb4d66ea4453c1ea52bcdaddc2d`) runs in an
+on-demand-style container `caysoc-torbot-runner` (image `caysoc/torbot-runner:2026-11`,
+1 GB RAM / 1.5 CPU cap). The container starts its own Tor daemon and exposes a tiny HTTP
+API on **127.0.0.1:9055** only. It returns a redacted target pattern, page counts and a
+SHA-256 of the raw crawl result — raw pages, emails and URLs never leave the container.
+
+Flow: `POST /api/csg/assets/onion/scan` (operator/board token) → **#2 scope gate** requires
+a live token with `tool: torbot` and a matching target → runner crawl → a #9 onion sighting
+and a #6 `darkweb_mention` indicator are stored, both audited. No new aggregator module was
+added; the data appears as small tags inside the existing Shadow Assets and Community
+panels. mcp-swarm exposes it as the built-in tool `recon:torbot` (sensitive tier), callable
+by agents with `{ target, scopeToken, depth }`.
+
+Local source: `integration/torbot/` (Dockerfile, runner.py, docker-compose.yml). Nothing is
+scanned unless an approved scope exists; denied checks are logged and do not consume token uses.
+
 ## Secrets / governance
 
 - `.env` is mode `600`, holds `BETTER_AUTH_SECRET` generated with `openssl rand -hex 32`.

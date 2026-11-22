@@ -1,0 +1,27 @@
+name: caysoc-torbot
+
+services:
+  torbot-runner:
+    build:
+      context: .
+      args:
+        TORBOT_COMMIT: a7000496a02adeb4d66ea4453c1ea52bcdaddc2d
+    image: caysoc/torbot-runner:2026-11
+    container_name: caysoc-torbot-runner
+    restart: unless-stopped
+    environment:
+      RUNNER_PORT: "9055"
+      SOCKS_PORT: "9050"
+      TORBOT_TIMEOUT_SEC: "180"
+      PYTHONPATH: "/opt/torbot/src"
+    # Private only — reachable from the aggregator and mcp-swarm on loopback.
+    ports:
+      - "127.0.0.1:9055:9055"
+    mem_limit: 1g
+    cpus: 1.5
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:9055/health',timeout=3)\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

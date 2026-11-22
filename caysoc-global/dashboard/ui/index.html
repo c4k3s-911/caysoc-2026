@@ -198,7 +198,12 @@
     </div>
     <div class="govkpis" id="assetKpis"></div>
     <div class="govgrid">
-      <div class="govpanel"><h3>Tracked assets</h3><div id="assetTable"></div>
+      <div class="govpanel"><h3>Tracked assets</h3><div id="assetTable"></div><div id="assetDarkweb"></div>
+        <div class="govform" id="onionForm">
+          <input id="onionTarget" placeholder="onion URL / brand domain" />
+          <input id="onionScope" placeholder="scope execution token" />
+          <button id="onionScan" type="button">Dark-web scan</button>
+        </div>
         <div class="govform" id="seedForm">
           <input id="seedHost" placeholder="host.example.co.za" />
           <input id="seedOwner" placeholder="owner" />
@@ -235,7 +240,7 @@
     </div>
     <div class="govkpis" id="commKpis"></div>
     <div class="govgrid">
-      <div class="govpanel"><h3>Verified signal mix (public-safe)</h3><div id="commPublic"></div>
+      <div class="govpanel"><h3>Verified signal mix (public-safe)</h3><div id="commDarkweb"></div><div id="commPublic"></div>
         <div class="govform" id="commForm">
           <select id="sigType">
             <option value="phishing_domain">phishing domain</option>
@@ -664,13 +669,14 @@ async function loadAssets() {
   if (!govTok()) {
     document.getElementById('assetRole').textContent = 'token required';
     document.getElementById('assetHealth').textContent = '● OFFLINE';
-    for (const id of ['assetKpis', 'assetTable', 'assetChanges']) document.getElementById(id).innerHTML = hint;
+    for (const id of ['assetKpis', 'assetTable', 'assetChanges', 'assetDarkweb']) document.getElementById(id).innerHTML = hint;
     document.getElementById('seedForm').hidden = true;
+    document.getElementById('onionForm').hidden = true;
     return;
   }
   try {
-    const [sum, data, changes] = await Promise.all([
-      assetApi('/summary'), assetApi('/assets'), assetApi('/changes?limit=10'),
+    const [sum, data, changes, onion] = await Promise.all([
+      assetApi('/summary'), assetApi('/assets'), assetApi('/changes?limit=10'), assetApi('/onion'),
     ]);
     document.getElementById('assetRole').textContent = 'authorized · passive inventory';
     const health = document.getElementById('assetHealth');
@@ -695,10 +701,12 @@ async function loadAssets() {
           <td>${esc((c.removed || []).join(', ') || '—')}</td>
           <td>${esc((c.changed || []).map(x => x.host).join(', ') || '—')}</td></tr>`).join('') + '</tbody></table>'
       : '<div class="govhint">No discovery passes with changes yet.</div>';
+    document.getElementById('assetDarkweb').innerHTML = `<div class="healthrow" style="margin-top:10px"><span class="tag warn">dark-web sightings ${INT(onion.count || 0)}</span>${(onion.sightings || []).slice(0, 3).map(o => `<span class="tag">${esc(o.targetPattern)} · ${INT(o.pages)}p · ${esc((o.brandTerms || []).join(',') || 'no brand terms')}</span>`).join('')}</div>`;
     document.getElementById('seedForm').hidden = false;
+    document.getElementById('onionForm').hidden = false;
   } catch (e) {
     document.getElementById('assetHealth').textContent = '● UNAVAILABLE';
-    for (const id of ['assetKpis', 'assetTable', 'assetChanges']) document.getElementById(id).innerHTML = '<div class="govhint">Asset monitor unavailable (token rejected).</div>';
+    for (const id of ['assetKpis', 'assetTable', 'assetChanges', 'assetDarkweb']) document.getElementById(id).innerHTML = '<div class="govhint">Asset monitor unavailable (token rejected).</div>';
   }
 }
 
@@ -726,6 +734,20 @@ document.getElementById('seedAdd').addEventListener('click', async () => {
     document.getElementById('seedHost').value = '';
     await loadAssets();
   } catch (e) { alert('Add host failed: ' + e.message); }
+});
+document.getElementById('onionScan').addEventListener('click', async () => {
+  const target = document.getElementById('onionTarget').value.trim();
+  const scopeToken = document.getElementById('onionScope').value.trim();
+  if (!target || !scopeToken) return alert('Target and a scope execution token are required.');
+  const b = document.getElementById('onionScan');
+  try {
+    b.disabled = true; b.textContent = 'Scanning…';
+    const r = await assetApi('/onion/scan', { method: 'POST', body: JSON.stringify({ target, scopeToken, depth: 1 }) });
+    document.getElementById('assetDarkweb').innerHTML += `<div class="govhint">Scan ok · ${esc(r.sighting.targetPattern)} · ${INT(r.sighting.pages)} pages · result ${esc(r.sighting.resultHash.slice(0, 16))}</div>`;
+    document.getElementById('onionTarget').value = '';
+    await loadAssets();
+  } catch (e) { alert('Dark-web scan failed: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Dark-web scan'; }
 });
 
 /* ---------- compliance evidence collector ---------- */
@@ -819,6 +841,7 @@ async function loadCommunity() {
       govKpi('Community reports', INT(s.signals.reports), '#7c3aed');
     const cats = Object.entries(s.by_category || {}).sort((a, b) => b[1] - a[1]);
     const sev = s.by_severity || {}, prov = s.by_province || {};
+    document.getElementById('commDarkweb').innerHTML = `<div class="healthrow" style="margin-top:10px"><span class="tag warn">dark-web signals ${INT(s.signals.darkweb_signals || 0)}</span></div>`;
     document.getElementById('commPublic').innerHTML =
       `<div class="govhint">${esc(s.safety_note)}</div>` +
       (cats.length ? `<table><thead><tr><th>Verified category</th><th>Count</th></tr></thead><tbody>` + cats.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${INT(v)}</td></tr>`).join('') + '</tbody></table>' : '<div class="govhint">No verified signals published yet.</div>') +

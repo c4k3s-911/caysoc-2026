@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireRole } from '../governance/auth.js';
-import { recordAudit } from '../governance/store.js';
+import { recordAudit, checkScope } from '../governance/store.js';
+import * as communityStore from '../community/store.js';
 import * as store from './store.js';
 import { discover } from './discovery.js';
 import { assetSummary, enrichAssets, diffAssets, weeklyReport } from './analysis.js';
@@ -9,11 +10,57 @@ const router = Router();
 const READ = requireRole('board', 'operator');
 const WRITE = requireRole('board', 'operator');
 
-router.get('/health', (_req, res) => res.json({ ok: true, module: 'caysoc-shadow-assets', mode: 'passive' }));
+const TORBOT_URL = process.env.TORBOT_RUNNER_URL || 'http://127.0.0.1:9055';
+
+router.get('/health', (_req, res) => res.json({ ok: true, module: 'caysoc-shadow-assets', mode: 'passive', torbot: true }));
 
 router.get('/summary', READ, (_req, res) => {
   const db = store.read();
-  res.json(assetSummary(db, db.snapshots || []));
+  res.json({ ...assetSummary(db, db.snapshots || []), onion_sightings: (db.onion || []).length });
+});
+
+router.get('/onion', READ, (_req, res) => {
+  const sightings = (store.read().onion || []).slice().reverse();
+  res.json({ sightings, count: sightings.length });
+});
+
+// TorBot brand-monitoring scan — folded into #9/#6, gated by #2 scope.
+router.post('/onion/scan', WRITE, async (req, res) => {
+  const target = String(req.body?.target || '').trim();
+  const scopeToken = String(req.body?.scopeToken || '');
+  if (!target) return res.status(400).json({ error: 'target_required' });
+  const check = checkScope({ token: scopeToken, target, tool: 'torbot' }, req.gov);
+  if (!check.allowed) return res.status(403).json(check);
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 210000);
+    let r;
+    try {
+      r = await fetch(TORBOT_URL + '/scan', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ target, depth: Number(req.body?.depth) || 1 }),
+        signal: ctl.signal,
+      });
+    } finally { clearTimeout(timer); }
+    const data = await r.json();
+    if (!r.ok) return res.status(502).json(data);
+    const sighting = store.addOnionSighting({ ...data, scopeId: check.scopeId }, req.gov);
+    const indicator = communityStore.addIndicator({
+      value: data.target_pattern || target,
+      type: 'darkweb_mention',
+      category: 'Dark-web brand monitor',
+      consent: true,
+      source: 'torbot',
+      note: `${data.pages || 0} pages · ${data.email_count || 0} contacts · sha256=${data.result_sha256}`,
+    }, { name: 'torbot-runner' });
+    recordAudit(req.gov, 'asset.torbot_scan', 'asset', sighting.id, {
+      targetHash: data.target_sha256, resultHash: data.result_sha256, scopeId: check.scopeId,
+    });
+    res.json({ ok: true, sighting, indicator: indicator.error || indicator.id, check: { scopeId: check.scopeId, remaining: check.remaining } });
+  } catch (e) {
+    res.status(502).json({ error: 'runner_unavailable', message: String(e && e.message || e) });
+  }
 });
 
 router.get('/seeds', READ, (_req, res) => res.json({ seeds: store.read().seeds || [] }));

@@ -2,10 +2,11 @@
 // governance data volume; no new container or mount is required.
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const DATA_DIR = path.resolve(process.env.GOV_DATA_DIR || './data/governance');
 const FILE = path.join(DATA_DIR, 'assets-store.json');
-const empty = () => ({ seeds: [], assets: {}, snapshots: [], lastRun: null });
+const empty = () => ({ seeds: [], assets: {}, snapshots: [], lastRun: null, onion: [] });
 
 function ensure() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -76,6 +77,27 @@ export function recordSnapshot(diff, actor) {
   db.snapshots = (db.snapshots || []).concat(snapshot).slice(-200);
   write(db);
   return snapshot;
+}
+
+export function addOnionSighting(input, actor) {
+  const db = read();
+  const sighting = {
+    id: 'ON-' + crypto.randomBytes(5).toString('hex').toUpperCase(),
+    at: new Date().toISOString(),
+    by: actor?.name || 'system',
+    targetPattern: String(input.target_pattern || '').slice(0, 160),
+    targetHash: String(input.target_sha256 || '').slice(0, 64),
+    resultHash: String(input.result_sha256 || '').slice(0, 64),
+    pages: Number(input.pages || 0),
+    fetched: Number(input.fetched || 0),
+    emailCount: Number(input.email_count || 0),
+    linkCount: Number(input.link_count || 0),
+    brandTerms: Array.isArray(input.brand_terms) ? input.brand_terms.slice(0, 10) : [],
+    scopeId: input.scopeId || null,
+  };
+  db.onion = (db.onion || []).concat(sighting).slice(-200);
+  write(db);
+  return sighting;
 }
 
 export const paths = { FILE, DATA_DIR };

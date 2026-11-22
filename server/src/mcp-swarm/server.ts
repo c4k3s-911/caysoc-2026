@@ -58,9 +58,62 @@ function toToolkitTool(
   };
 }
 
+/** Built-in scope-gated dark-web monitor tool (no plugin required). */
+const TORBOT_TOOL: ToolkitToolDescriptor = {
+  name: "recon:torbot",
+  displayName: "TorBot Dark-web Monitor",
+  description:
+    "Scope-gated passive dark-web/brand monitoring. Requires an approved lab scope token with tool 'torbot'; results are redacted aggregates plus a SHA-256 evidence hash.",
+  tier: TOOLKIT_SECURITY_TIERS.SENSITIVE,
+  cell: "RECON",
+  parametersSchema: {
+    type: "object",
+    properties: {
+      target: { type: "string", description: "Authorised domain or onion URL" },
+      scopeToken: { type: "string", description: "Short-lived execution token from the scope gate" },
+      depth: { type: "number", default: 1 },
+    },
+    required: ["target", "scopeToken"],
+  },
+};
+
+async function invokeTorbot(params: Record<string, unknown>): Promise<unknown> {
+  const base = process.env.CAYSOC_AGGREGATOR_URL || "http://127.0.0.1:4310";
+  let operatorToken = process.env.CAYSOC_TORBOT_TOKEN || "";
+  if (!operatorToken) {
+    try {
+      const tokens = JSON.parse(process.env.CAYSOC_GOV_TOKENS || "[]") as Array<{ role?: string; token?: string }>;
+      operatorToken = tokens.find((t) => t.role === "operator")?.token || "";
+    } catch { /* ignore */ }
+  }
+  if (!operatorToken) throw new Error("governance operator token unavailable");
+  const response = await fetch(`${base}/api/csg/assets/onion/scan`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${operatorToken}` },
+    body: JSON.stringify({
+      target: params.target,
+      scopeToken: params.scopeToken,
+      depth: Number(params.depth) || 1,
+    }),
+  });
+  const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw new Error(`torbot denied: ${JSON.stringify(body)}`);
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify({
+        ok: true,
+        sighting: body.sighting,
+        check: body.check,
+        note: "Redacted aggregate only. Raw dark-web content never leaves the runner.",
+      }),
+    }],
+  };
+}
+
 /** Build the toolkit catalog from the live plugin tool dispatcher. */
-function buildCatalog(dispatcher: PluginToolDispatcher): ToolkitCatalog {
-  const tools = dispatcher.listToolsForAgent();
+function buildCatalog(dispatcher?: PluginToolDispatcher): ToolkitCatalog {
+  const tools = dispatcher ? dispatcher.listToolsForAgent() : [];
   const capabilities: ToolkitCapability[] = [];
   const seen = new Map<string, ToolkitCapability>();
 
@@ -81,6 +134,14 @@ function buildCatalog(dispatcher: PluginToolDispatcher): ToolkitCatalog {
     }
     cap.tools.push(toToolkitTool(tool, cell, tier));
   }
+
+  let recon = seen.get("RECON");
+  if (!recon) {
+    recon = { cell: "RECON", tier: TOOLKIT_SECURITY_TIERS.PUBLIC, tools: [] };
+    seen.set("RECON", recon);
+    capabilities.push(recon);
+  }
+  if (!recon.tools.some((t) => t.name === TORBOT_TOOL.name)) recon.tools.push(TORBOT_TOOL);
 
   return {
     version: "1.0.0",
@@ -144,17 +205,19 @@ async function handleRpcMethod(
     case "ping":
       return { ok: true, serverTime: new Date().toISOString() };
     case "toolkit.list": {
-      if (!dispatcher) throw new Error("tool dispatcher unavailable");
       return buildCatalog(dispatcher);
     }
     case "toolkit.execute": {
-      if (!dispatcher) throw new Error("tool dispatcher unavailable");
       const params = request.params ?? {};
       const namespacedName = params.namespacedName;
       const parameters = params.parameters;
       if (typeof namespacedName !== "string") {
         throw new Error("namespacedName is required");
       }
+      if (namespacedName === TORBOT_TOOL.name) {
+        return invokeTorbot((parameters ?? {}) as Record<string, unknown>);
+      }
+      if (!dispatcher) throw new Error("tool dispatcher unavailable");
       return dispatcher.executeTool(namespacedName, parameters, parseRunContext(params.runContext));
     }
     default:
